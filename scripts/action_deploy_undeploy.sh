@@ -590,10 +590,10 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 			if [[ $notfound == 1 ]]; then
 				echo File $targetfileforconfig1 already exists but content does not include database param. We recreate file.
 				echo "rm $targetfileforconfig1"
-				if [[ $testorconfirm == "confirm" ]]
-				then
-					rm -f $targetfileforconfig1
-				fi
+#				if [[ $testorconfirm == "confirm" ]]
+#				then
+#					rm -f $targetfileforconfig1
+#				fi
 				echo "cp $fileforconfig1 $targetfileforconfig1"
 				if [[ $testorconfirm == "confirm" ]]
 				then
