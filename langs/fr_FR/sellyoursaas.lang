@@ -492,6 +492,7 @@ OnlineOffline=Mise en ligne|hors ligne des instances
 EvenIfDomainIsOpenTo=Even if domain is open to registration, it may not appears on registration page due to restriction set on the package of the service you try to register.
 OnDomainOnly=Uniquement depuis %s
 LastPaymentTry=Dernier tentative d'encaissement
+TitleFactureRec=Modèle de facture pour %s %s
 SellYourSaasTimeZoneDesc=Ce fuseau horaire peut être utilisé pour remplacer la chaîne TZ=UTC dans le fichier cron
 NoteForSupportUser=Cet utilisateur est utilisé à des fins de maintenance par votre hébergeur. Cet utilisateur peut être supprimé à tout moment et vous pouvez également le supprimer vous-même à tout moment, il sera recréé si nécessaire. Si vous avez une instance payante, cet utilisateur n'est pas inclus dans la facturation.
 SorryEmailExistsforAnotherAccount=Désolé, l'e-mail '%s' est déjà utilisé pour un autre compte
