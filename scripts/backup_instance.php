@@ -430,7 +430,9 @@ if ($mode == 'testdatabase' || $mode == 'test' || $mode == 'confirmdatabase' || 
 	$outputerr = file_get_contents($dirroot.'/'.$login.'/mysqldump_'.$object->database_db.'_'.gmstrftime('%d').'.err');
 	print $outputerr;
 
-	$return_outputmysql = strpos($outputerr, 'Error 1412: Table definition has changed');
+	//$return_outputmysql = strpos($outputerr, 'Error 1412: Table definition has changed');
+	//$return_outputmysql = strpos($outputerr, ' Error ');
+	$return_outputmysql = (count(file($dirroot.'/'.$login.'/mysqldump_'.$object->database_db.'_'.gmstrftime('%d').'.err')) - 1);	// If there is more than 1 line in .err, this is an error in dump.
 	if ($return_outputmysql > 0) {
 		print $dateaftermysqldump.' mysqldump found string error in output err file.'."\n";
 	} else {
@@ -479,7 +481,8 @@ if (empty($return_var) && empty($return_varmysql) && empty($return_outputmysql))
 		print 'Update date of full backup (rsync+dump) for instance '.$object->instance.' to '.$now."\n";
 
 		// Update database
-		$object->array_options['options_latestbackup_date'] = $now;	// date latest files and database rsync backup
+		$object->array_options['options_latestbackup_date'] = $now;	// date latest files and database rsync backup try
+		$object->array_options['options_latestbackup_date_ok'] = $now;	// date latest files and database rsync backup try
 		$object->array_options['options_latestbackup_status'] = 'OK';
 		$object->array_options['options_latestbackup_message'] = dol_trunc('', 8000);
 		$object->update($user, 1);
@@ -517,7 +520,7 @@ else
 	if ($mode == 'confirm')
 	{
 		// Update database
-		$object->array_options['options_latestbackup_date'] = $now;	// date latest files and database rsync backup
+		$object->array_options['options_latestbackup_date'] = $now;	// date latest files and database rsync backup try
 		$object->array_options['options_latestbackup_status'] = 'KO';
 		$object->array_options['options_latestbackup_message'] = dol_trunc('', 8000);
 		$object->update($user, 1);

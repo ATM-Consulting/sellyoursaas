@@ -25,10 +25,7 @@ echo "# now ------------> $now"
 echo "# PID ------------> ${$}"
 echo "# PWD ------------> $PWD" 
 echo "# arguments ------> ${@}"
-echo "# path to me -----> ${0}"
 echo "# parent path ----> ${0%/*}"
-echo "# my name --------> ${0##*/}"
-echo "# realname -------> $(realpath ${0})"
 echo "# realname name --> $(basename $(realpath ${0}))"
 echo "# realname dir ---> $(dirname $(realpath ${0}))"
 
@@ -146,6 +143,8 @@ if [ "x$VIRTUALHOSTHEAD" == "x-" ]; then
 fi
 export ispaidinstance=${36}
 export SELLYOURSAAS_LOGIN_FOR_SUPPORT=${37}
+export directaccess=${38}
+export sshaccesstype=${39}
 
 export ErrorLog='#ErrorLog'
 
@@ -221,6 +220,8 @@ echo "ALLOWOVERRIDE = $ALLOWOVERRIDE"
 echo "VIRTUALHOSTHEAD = $VIRTUALHOSTHEAD"
 echo "ispaidinstance = $ispaidinstance"
 echo "SELLYOURSAAS_LOGIN_FOR_SUPPORT = $SELLYOURSAAS_LOGIN_FOR_SUPPORT"
+echo "directaccess = $directaccess"
+echo "sshaccesstype = $sshaccesstype"
 echo "ErrorLog = $ErrorLog"
 
 echo `date +%Y%m%d%H%M%S`" calculated params:"
@@ -283,7 +284,7 @@ testorconfirm="confirm"
 
 if [[ "$mode" == "deployall" ]]; then
 
-	echo `date +%Y%m%d%H%M%S`" ***** Create user $osusername with home into /home/jail/home/$osusername"
+	echo `date +%Y%m%d%H%M%S`" ***** Create user $osusername with home into $targetdir/$osusername"
 	
 	id -u $osusername
 	notfound=$?
@@ -295,39 +296,173 @@ if [[ "$mode" == "deployall" ]]; then
 	else
 		echo "perl -e'print crypt(\"'XXXXXX'\", "saltsalt")'"
 		export passcrypted=`perl -e'print crypt("'$ospassword'", "saltsalt")'`
-		echo "useradd -m -d /home/jail/home/$osusername -p 'YYYYYY' -s '/bin/secureBash' $osusername"
+		echo "useradd -m -d $targetdir/$osusername -p 'YYYYYY' -s '/bin/secureBash' $osusername"
 		useradd -m -d $targetdir/$osusername -p "$passcrypted" -s '/bin/secureBash' $osusername 
 		if [[ "$?x" != "0x" ]]; then
 			echo Error failed to create user $osusername 
 			echo "Failed to deployall instance $instancename.$domainname with: useradd -m -d $targetdir/$osusername -p $ospassword -s '/bin/secureBash' $osusername" | mail -aFrom:$EMAILFROM -s "[Alert] Pb in deployment" $EMAILTO
 			exit 1
 		fi
-		chmod -R go-rwx /home/jail/home/$osusername
+		chmod -R go-rwx $targetdir/$osusername
 	fi
 
-	if [[ -d /home/jail/home/$osusername ]]
+	if [[ -d $targetdir/$osusername ]]
 	then
-		echo "/home/jail/home/$osusername exists. good."
+		echo "$targetdir/$osusername exists. good."
 	else
-		mkdir /home/jail/home/$osusername
-		chmod -R go-rwx /home/jail/home/$osusername
+		mkdir $targetdir/$osusername
+		chmod -R go-rwx $targetdir/$osusername
 	fi
 	
-	#if [[ -d /home/jail/home/$osusername/.ssh ]]
+	#if [[ -d $targetdir/$osusername/.ssh ]]
 	#then
-	#	echo "generate ssh key in /home/jail/home/$osusername/.ssh"
-	#	ssh-keygen -t rsa -f /home/jail/home/$osusername/.ssh/id_rsa -q -P ""
-	#	chown -R $osusername.$osusername /home/jail/home/$osusername/.ssh
-	#	cat /home/jail/home/$osusername/.ssh/id_rsa.pub >> /home/jail/home/$osusername/.ssh/authorized_keys
+	#	echo "generate ssh key in $targetdir/$osusername/.ssh"
+	#	ssh-keygen -t rsa -f $targetdir/$osusername/.ssh/id_rsa -q -P ""
+	#	chown -R $osusername.$osusername $targetdir/$osusername/.ssh
+	#	cat $targetdir/$osusername/.ssh/id_rsa.pub >> $targetdir/$osusername/.ssh/authorized_keys
 	#fi
+	
+	if [[ "$sshaccesstype" > "0" ]]; then
+		if [[ ! -f "/etc/jailkit/jk_init.ini" ]]; then
+			echo "Error failed to find jailkit package in your system"
+		else
+			chrootdir=`grep 'chrootdir=' /etc/sellyoursaas.conf | cut -d '=' -f 2`
+			if [[ "x$chrootdir" == "x" ]]; then
+				echo "Error your jailkit chroot directory is not defined in sellyoursaas.conf"
+			else
+				if [[ ! -d "$chrootdir" ]]; then
+					echo "Create $chrootdir directory"
+					mkdir $chrootdir
+				fi
+				
+				privatejailtemplatename=`grep 'privatejailtemplatename=' /etc/sellyoursaas.conf | cut -d '=' -f 2`
+				commonjailtemplatename=`grep 'commonjailtemplatename=' /etc/sellyoursaas.conf | cut -d '=' -f 2`
+				
+				echo `date +%Y%m%d%H%M%S`" ***** Create jailkit chroot directory for user $osusername"
+				echo "chrootdir = $chrootdir"
+				echo "privatejailtemplatename = $privatejailtemplatename"
+				echo "commonjailtemplatename = $commonjailtemplatename"
+				
+				# Common users jail
+				if [[ "$sshaccesstype" == "1" ]]; then
+					if [[ "x$commonjailtemplatename" == "x" ]]; then
+						echo "Error your jailkit common template name is not defined in sellyoursaas.conf"
+					else
+						if [[ ! -d "$chrootdir/$commonjailtemplatename" ]]; then
+							echo "Common jail directory $chrootdir/$commonjailtemplatename not exists, try to create it"
+							if [[ ! -f "$templatesdir/$commonjailtemplatename.tgz" ]]; then
+								echo "Failed to get jailkit common template $templatesdir/$commonjailtemplatename.tgz"
+								exit 1
+							fi
+							echo "tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/"
+							tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/
+						fi
+						if [[ ! -d "$chrootdir/$commonjailtemplatename$targetdir/$osusername" ]]; then
+							echo "mkdir -p $chrootdir/$commonjailtemplatename$targetdir/$osusername"
+							mkdir -p $chrootdir/$commonjailtemplatename$targetdir/$osusername
+						fi
+						echo "jk_jailuser -s /bin/bash -n -j $chrootdir/$commonjailtemplatename/ $osusername"
+						jk_jailuser -s /bin/bash -n -j $chrootdir/$commonjailtemplatename/ $osusername
+						echo "mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind"
+						mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind
+						echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
+						echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+					fi
+				else
+					# Private users jail
+					if [[ "$sshaccesstype" == "2" ]]; then
+						if [[ ! -d "$chrootdir/$osusername" ]]; then
+							if [[ "x$privatejailtemplatename" != "x" && -f "$templatesdir/$privatejailtemplatename.tgz" ]]; then
+								echo "tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/"
+								tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/
+								echo "mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername"
+								mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername
+							else
+								echo "jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient"
+								jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient >/dev/null 2>&1
+							fi
+							echo "mkdir -p $chrootdir/$osusername$targetdir/$osusername"
+							mkdir -p $chrootdir/$osusername$targetdir/$osusername
+						fi
+						echo "jk_jailuser -s /bin/bash -n -j $chrootdir/$osusername/ $osusername"
+						jk_jailuser -s /bin/bash -n -j $chrootdir/$osusername/ $osusername
+						echo "mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind"
+						mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind
+						echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
+						echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+					fi
+				fi
+			fi
+		fi
+	fi
 fi
 
 if [[ "$mode" == "undeploy" || "$mode" == "undeployall" ]]; then
 
-	echo rm -f /home/jail/home/$osusername/$dbname/*.log
-	rm -f /home/jail/home/$osusername/$dbname/*.log >/dev/null 2>&1 
-	echo rm -f /home/jail/home/$osusername/$dbname/*.log.*
-	rm -f /home/jail/home/$osusername/$dbname/*.log.* >/dev/null 2>&1 
+	echo rm -f $targetdir/$osusername/$dbname/*.log
+	rm -f $targetdir/$osusername/$dbname/*.log >/dev/null 2>&1 
+	echo rm -f $targetdir/$osusername/$dbname/*.log.*
+	rm -f $targetdir/$osusername/$dbname/*.log.* >/dev/null 2>&1 
+	
+	if [[ "$sshaccesstype" > "0" ]]; then
+		
+		if [[ ! -f "/etc/jailkit/jk_init.ini" ]]; then
+			echo "Error failed to find jailkit package in your system"
+		else
+			chrootdir=`grep 'chrootdir=' /etc/sellyoursaas.conf | cut -d '=' -f 2`
+			if [[ "x$chrootdir" == "x" ]]; then
+				Error your jailkit chroot directory is not defined in sellyoursaas.conf
+			else
+				if [[ -d "$chrootdir" ]]; then
+				
+					commonjailtemplatename=`grep 'commonjailtemplatename=' /etc/sellyoursaas.conf | cut -d '=' -f 2`
+					
+					echo `date +%Y%m%d%H%M%S`" ***** Remove jailkit chroot directory for user $osusername"
+					echo "chrootdir = $chrootdir"
+					echo "commonjailtemplatename = $commonjailtemplatename"
+					
+					# Common users jail
+					if [[ "$sshaccesstype" == "1" ]]; then
+						if [[ "x$commonjailtemplatename" == "x" ]]; then
+							echo "Error your jailkit common template name is not defined in sellyoursaas.conf"
+						else
+							if [[ -d "$chrootdir/$commonjailtemplatename" ]]; then
+								echo "umount $chrootdir/$commonjailtemplatename$targetdir/$osusername"
+								umount $chrootdir/$commonjailtemplatename$targetdir/$osusername
+								echo "rm -Rf $chrootdir/$commonjailtemplatename$targetdir/$osusername"
+								rm -Rf $chrootdir/$commonjailtemplatename$targetdir/$osusername
+								echo 'sed -i "/$osusername/d" $chrootdir/$commonjailtemplatename/etc/passwd'
+								sed -i "/$osusername/d" $chrootdir/$commonjailtemplatename/etc/passwd
+								echo 'sed -i "/$osusername/d" $chrootdir/$commonjailtemplatename/etc/group'
+								sed -i "/$osusername/d" $chrootdir/$commonjailtemplatename/etc/group
+							else
+								echo "Failed to find common jail $chrootdir/$commonjailtemplatename"
+							fi
+						fi
+					else
+						# Private users jail
+						if [[ "$sshaccesstype" == "2" ]]; then
+							if [[ -d "$chrootdir/$osusername" ]]; then
+								echo "umount $chrootdir/$osusername$targetdir/$osusername"
+								umount $chrootdir/$osusername$targetdir/$osusername
+								echo "rm -Rf $chrootdir/$osusername"
+								rm -Rf $chrootdir/$osusername
+							else
+								echo "Failed to find private jail $chrootdir/$osusername"
+							fi
+						fi
+					fi
+					echo 'sed -i "/$osusername/d" /etc/fstab'
+					sed -i "/$osusername/d" /etc/fstab
+					# to prevent error "user osuxxxxx is currently used by process xxxx"
+					echo "killall -u $osusername; sleep 2"
+					killall -u $osusername; sleep 2
+					echo "usermod -d $targetdir/$osusername --shell /bin/false $osusername"
+					usermod -d $targetdir/$osusername --shell /bin/false $osusername
+				fi
+			fi
+		fi
+	fi
 
 fi
 
@@ -517,8 +652,8 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 
 	echo `date +%Y%m%d%H%M%S`" ***** Deploy files"
 	
-	echo "Create dir for instance = /home/jail/home/$osusername/$dbname"
-	mkdir -p /home/jail/home/$osusername/$dbname
+	echo "Create dir for instance = $targetdir/$osusername/$dbname"
+	mkdir -p $targetdir/$osusername/$dbname
 	
 	echo "Check dirwithsources1=$dirwithsources1 targetdirwithsources1=$targetdirwithsources1"
 	if [ -d $dirwithsources1 ]; then
@@ -560,9 +695,9 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 		fi
 	fi
 
-	echo "Force permissions and owner on /home/jail/home/$osusername/$dbname"
-	chown -R $osusername.$osusername /home/jail/home/$osusername/$dbname
-	chmod -R go-rwx /home/jail/home/$osusername/$dbname
+	echo "Force permissions and owner on $targetdir/$osusername/$dbname"
+	chown -R $osusername.$osusername $targetdir/$osusername/$dbname
+	chmod -R go-rwx $targetdir/$osusername/$dbname
 fi
 
 
@@ -715,7 +850,7 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 			  sed -e 's/__webAdminEmail__/$EMAILFROM/g' | \
 			  sed -e 's/__osUsername__/$osusername/g' | \
 			  sed -e 's/__osGroupname__/$osusername/g' | \
-			  sed -e 's;__osUserPath__;/home/jail/home/$osusername/$dbname;g' | \
+			  sed -e 's;__osUserPath__;$targetdir/$osusername/$dbname;g' | \
 			  sed -e 's;__VirtualHostHead__;$VIRTUALHOSTHEAD;g' | \
 			  sed -e 's;__AllowOverride__;$ALLOWOVERRIDE;g' | \
 			  sed -e 's;__SELLYOURSAAS_LOGIN_FOR_SUPPORT__;$SELLYOURSAAS_LOGIN_FOR_SUPPORT;g' | \
@@ -731,7 +866,7 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 			  sed -e "s/__webAdminEmail__/$EMAILFROM/g" | \
 			  sed -e "s/__osUsername__/$osusername/g" | \
 			  sed -e "s/__osGroupname__/$osusername/g" | \
-			  sed -e "s;__osUserPath__;/home/jail/home/$osusername/$dbname;g" | \
+			  sed -e "s;__osUserPath__;$targetdir/$osusername/$dbname;g" | \
 			  sed -e "s;__VirtualHostHead__;$VIRTUALHOSTHEAD;g" | \
 			  sed -e "s;__AllowOverride__;$ALLOWOVERRIDE;g" | \
 			  sed -e "s;__SELLYOURSAAS_LOGIN_FOR_SUPPORT__;$SELLYOURSAAS_LOGIN_FOR_SUPPORT;g" | \
@@ -801,7 +936,7 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 				  sed -e 's/__webAdminEmail__/$EMAILFROM/g' | \
 				  sed -e 's/__osUsername__/$osusername/g' | \
 				  sed -e 's/__osGroupname__/$osusername/g' | \
-				  sed -e 's;__osUserPath__;/home/jail/home/$osusername/$dbname;g' | \
+				  sed -e 's;__osUserPath__;$targetdir/$osusername/$dbname;g' | \
 				  sed -e 's;__VirtualHostHead__;$VIRTUALHOSTHEAD;g' | \
 				  sed -e 's;__AllowOverride__;$ALLOWOVERRIDE;g' | \
 				  sed -e 's;__SELLYOURSAAS_LOGIN_FOR_SUPPORT__;$SELLYOURSAAS_LOGIN_FOR_SUPPORT;g' | \
@@ -818,7 +953,7 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 				  sed -e "s/__webAdminEmail__/$EMAILFROM/g" | \
 				  sed -e "s/__osUsername__/$osusername/g" | \
 				  sed -e "s/__osGroupname__/$osusername/g" | \
-				  sed -e "s;__osUserPath__;/home/jail/home/$osusername/$dbname;g" | \
+				  sed -e "s;__osUserPath__;$targetdir/$osusername/$dbname;g" | \
 				  sed -e "s;__VirtualHostHead__;$VIRTUALHOSTHEAD;g" | \
 				  sed -e "s;__AllowOverride__;$ALLOWOVERRIDE;g" | \
 				  sed -e "s;__SELLYOURSAAS_LOGIN_FOR_SUPPORT__;$SELLYOURSAAS_LOGIN_FOR_SUPPORT;g" | \
@@ -995,7 +1130,7 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 	echo "You can test with mysql $dbname -h $dbserverhost -P $dbserverport -u $dbusername -p$dbpassword"
 
 	# Load dump file
-	echo Search dumpfile into $dirwithdumpfile
+	echo `date +%Y%m%d%H%M%S`" Search dumpfile into $dirwithdumpfile"
 	for dumpfile in `ls $dirwithdumpfile/*.sql 2>/dev/null`
 	do
 		echo "$MYSQL -A -h $dbserverhost -P $dbserverport -u$dbadminuser -pXXXXXX -D $dbname < $dumpfile"
@@ -1038,7 +1173,7 @@ fi
 
 if [[ "$mode" == "undeployall" ]]; then
 	
-	echo `date +%Y%m%d%H%M%S`" ***** Delete user $osusername with home into /home/jail/home/$osusername and archive it into $archivedir"
+	echo `date +%Y%m%d%H%M%S`" ***** Delete user $osusername with home into $targetdir/$osusername and archive it into $archivedir"
 
 	echo crontab -r -u $osusername
 	crontab -r -u $osusername
@@ -1065,7 +1200,7 @@ fi
 if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 	if [[ "x$cliafter" != "x" ]]; then
 		if [ -f $cliafter ]; then
-			echo ". $cliafter"
+			echo `date +%Y%m%d%H%M%S`" Execute script with . $cliafter"
 			. $cliafter
 			if [[ "x$?" != "x0" ]]; then
 				echo Error when running the CLI script $cliafter 

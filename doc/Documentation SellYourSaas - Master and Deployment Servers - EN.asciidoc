@@ -44,7 +44,7 @@ Following the deployment of v1 and at the request of users to perpetuate their i
 * Management of a reseller network.
 * Available in OpenSource.
 
-Funded by the Open Source companies https://www.nltechno.com [NLTechno] and https://www.teclib.com [TecLib], SellYourSaas v2 has achieved these objectives and is now in production for several companies offering Saas services (https://www.dolicloud.com[DoliCloud], https://www.novafirstcloud.com[NovaFirstCloud], https://www.glpi-network.cloud[GLPI-Network], https://www.doliondemand.fr[DoliOnDemand],...). Here is a summary of its capabilities:
+Funded by the Open Source companies https://www.dolicloud.com [DoliCloud] and https://www.teclib.com [TecLib], SellYourSaas v2 has achieved these objectives and is now in production for several companies offering Saas services (https://www.dolicloud.com[DoliCloud], https://www.novafirstcloud.com[NovaFirstCloud], https://www.glpi-network.cloud[GLPI-Network], https://www.doliondemand.fr[DoliOnDemand],...). Here is a summary of its capabilities:
 
 * Deployment of any WAMP application. Management of multiple solutions / different applications at the same time.
 * Free distribution of proceedings without request for confidential information or bank cards.
@@ -1391,7 +1391,6 @@ It seems we must also restart apache to have this effective inside apache.
 !/home/jail/home
 !/home/admin/wwwroot/dolibarr_documents
 !/home/admin/wwwroot/dolibarr/.git
-!/home/admin/wwwroot/dolibarr_nltechno/.git
 !/home/admin/wwwroot/dolibarr_sellyoursaas/.git
 
 !/home/admin/.bash_history
@@ -1466,7 +1465,8 @@ Compiler le fichier par:
 postmap /etc/postfix/generic
 ---------------
 
-Editer le fichier /etc/mailname pour mettre le nom long du serveur *myshortservername.mysaasdomain.com*:
+Edit the file */etc/mailname* to set the long FQDN of the server *myshortservername.mysaasdomain.com*:
+
 [source,bash]
 ---------------
 vi /etc/mailname
@@ -2196,6 +2196,156 @@ systemctl daemon-reload
 ---------------
 
 
+=== Jailkit configuration (optional)
+
+Jailkit is a set of utilities to limit user accounts to specific files using chroot() and or specific commands. Setting up a chroot shell, a shell limited to some specific command, or a daemon inside a chroot jail is a lot easier and can be automated using these utilities.
+
+!! Important !!
+Jailkit requires changing the access to /mnt/diskhome/home directory as it will not work with a symbolic link
+
+* Remove the symbolic link /home/jail/home that points to /mnt/diskhome/home
+
+[source,bash]
+---------------
+rm -f /home/jail/home
+---------------
+
+* Create the home directory which will be used for mounting /mnt/diskhome/home
+
+[source,bash]
+---------------
+mkdir /home/jail/home
+---------------
+
+* Create the directory that will contain the chroot/jail of users
+
+[source,bash]
+---------------
+mkdir /mnt/diskhome/chroot
+mkdir /home/jail/chroot
+---------------
+
+* Add mounts from directories to /etc/fstab
+
+[source,bash]
+---------------
+# /home/jail/home
+/mnt/diskhome/home /home/jail/home bind defaults,bind 0
+# /home/jail/chroot
+/mnt/diskhome/chroot /home/jail/chroot bind defaults,bind 0
+---------------
+
+* Mount directories
+
+[source,bash]
+---------------
+mount /home/jail/home
+mount /home/jail/chroot
+---------------
+
+* Installing the Jailkit package
+
+[source,bash]
+---------------
+sudo apt install jailkit
+---------------
+
+* Add this to the end of the config file /etc/jailkit/jk_init.ini
+
+[source,bash]
+---------------
+[groups]
+comment = Groups management
+executables = /usr/bin/groups
+
+[php]
+comment = The PHP Interpreter and Libraries
+executables = /usr/bin/php, /usr/bin/php7.4, /usr/bin/php7.3, /usr/bin/php7.2, /usr/bin/php5.6
+directories = /usr/lib/php, /usr/share/php, /usr/share/php, /etc/php, /usr/share/php-geshi, /usr/share/zoneinfo
+includesections = env
+
+[env]
+comment = environment variables
+executables = /usr/bin/env
+
+[mysqlclient]
+comment = mysql client
+executables = /usr/bin/mysql, /usr/bin/mysqldump
+paths = /usr/lib/x86_64-linux-gnu/libmysqlclient.so.21
+regularfiles = /etc/mysql/my.cf, /etc/mysql/conf.d/, /etc/mysql/mariadb.conf.d/
+---------------
+
+* Add this to the end of the config file /etc/jailkit/jk_chrootsh.ini
+
+[source,bash]
+---------------
+[DEFAULT]
+env = TERM, PATH
+---------------
+
+* Create the directory which will contain the chroot/jail model which will be used to create the templates
+
+[source,bash]
+---------------
+mkdir /home/jail/chroot/template
+---------------
+
+* Initializing the chroot/jail with the commands you want to make available to users
+
+[source,bash]
+---------------
+jk_init -c /etc/jailkit/jk_init.ini -j /home/jail/chroot/template extendedshell limitedshell groups sftp rsync editors git php mysqlclient
+mkdir /home/jail/chroot/template/home
+mkdir /home/jail/chroot/template/tmp
+chmod 1777 /home/jail/chroot/template/tmp
+---------------
+
+In this example the commonjail.tgz template will be used to create the chroot/jail common /home/jail/chroot/commonjail (if it does not exist)
+
+and the privatejail.tgz template will be used to create private chroot/jail (eg. /home/jail/chroot/osuxxxxx)
+
+* Create your tgz which will be used to install the private chroot/jail and reinstall the common chroot/jail if necessary
+
+[source,bash]
+---------------
+cd /home/jail/chroot
+tar czf commonjail.tgz template
+tar czf privatejail.tgz template
+---------------
+
+* Move your templates to the /sellyoursaas/scripts/templates directory accessible by your instances server
+
+[source,bash]
+---------------
+mv commonjail.tgz privatejail.tgz /home/admin/wwwroot/dolibarr_documents/sellyoursaas/scripts/templates/
+---------------
+
+* Modify the /etc/sellyoursaas.conf file of your instances server
+
+[source,bash]
+---------------
+# Options for Jailkit
+chrootdir=/home/jail/chroot
+privatejailtemplatename=privatejail
+commonjailtemplatename=commonjail
+---------------
+
+
+Add this constant in your backoffice to activate Jailkit
+* SELLYOURSAAS_SSH_JAILKIT_ENABLED = 1
+
+
+A new "SSH access type" option will be available in your service (Application):
+
+image::config_jailkit_service.png[SSH access type]
+
+
+and in contracts (instances):
+
+image::config_jailkit_contrat.png[SSH access type]
+
+
+
 === Allow generation of PNG thumbs from PDFs
 
 Supprimer la règle de désactivation du format Ghostscript PDF dans ImageMagick
@@ -2419,15 +2569,24 @@ logrotate -f logrotate_sellyoursaas_log
 ---------------
 
 
-=== Configuration de journalctl (sur Ubuntu 18.04+)
+=== Setup of journalctl (on Ubuntu 18.04+)
 
-* Editer le fichier */etc/systemd/journald.conf* pour définir une taille max aux journaux systemd
+* Edit the file */etc/systemd/journald.conf* to define the max size for systemd journals
 
 [source,conf]
 ---------------
 ...
-SystemMaxUse=100M
+SystemMaxUse=250M
+SystemMaxFileSize=50M
 ...
+---------------
+
+Take into account the change with
+
+[source,bash]
+---------------
+systemctl stop systemd-journald
+systemctl start systemd-journald
 ---------------
 
 
@@ -2756,6 +2915,8 @@ dnsserver=1
 ipserverdeployment=ipduserverdeployment
 # Set this to directory where dolibarr repository is installed
 dolibarrdir=/home/admin/wwwroot/dolibarr
+# Set directory where instances are stored (default is /home/jail/home)
+#targetdir=/home/jail/home
 # Set location of the master database
 databasehost=ipduserveurmaster ou localhost si serveur master
 # Set port of the master database (default is 3306)
@@ -2786,6 +2947,10 @@ remoteserverlistenport=8080
 #websslcertificatecrt=with.sellyoursaas.com.crt
 #websslcertificatekey=with.sellyoursaas.com.key
 #websslcertificateintermediate=with.sellyoursaas.com-intermediate.crt
+# Options for Jailkit
+#chrootdir=/home/jail/chroot
+#privatejailtemplatename=privatejail
+#commonjailtemplatename=commonjail
 ---------------
 
 Mettre *dnsserver* et *instanceserver* à 0 sur le Master, mettre *dnsserver* et *instanceserver* à 1 sur les serveurs de déploiement des instances.
@@ -2875,7 +3040,7 @@ cp /etc/datadog-agent/conf.d/apache.d/conf.yaml.example /etc/datadog-agent/conf.
 cp /etc/datadog-agent/conf.d/postfix.d/conf.yaml.example /etc/datadog-agent/conf.d/postfix.d/conf.yaml
 ---------------
 
-Editer le fichier pour ajouter "min_collection_interval: 300" sous "postfix_user: postfix" et sous "queues: - deffered"
+Editer le fichier pour ajouter *min_collection_interval: 300* sous *postfix_user: postfix* et sous *queues: - deffered*
 
 
 * Copy the datadog config file to supervize *memcached*.
@@ -2921,6 +3086,18 @@ instances:
     exact_match: False
     thresholds:
       critical: [1, 5000]
+      
+  - name: fail2ban
+    search_string: ['fail2ban-server']
+    exact_match: False
+    thresholds:
+      critical: [1, 5000]
+
+  - name: cron
+    search_string: ['/usr/sbin/cron']
+    exact_match: False
+    thresholds:
+      critical: [1, 5000]      
 ---------------
 
 
@@ -3036,7 +3213,7 @@ resize2fs /dev/vdX9
 
 
 [Clonage d une instance serveur pour production bis ou pour développement]
-=== Clonage d une instance serveur pour production bis ou pour développement
+=== Clone an server instance for a another production server or for development
 
 Les étapes suivantes résumes les opérations à réaliser pour cloner un serveur de déploiement en un autre serveur de déploiement.
 
@@ -3081,9 +3258,12 @@ touch /mnt/diskhome/DATA_MYDEPLOYMENTSERVERX
 vi /etc/exports
 ---------------
 
-Pour ajouter une ligne du type:
+to add a line that looks like:
 
-	/home/admin/wwwroot/dolibarr_documents/sellyoursaas i.p.deployment.server(ro,no_root_squash,sync,no_subtree_check)
+[source,bash]
+---------------
+/home/admin/wwwroot/dolibarr_documents/sellyoursaas i.p.deployment.server(ro,no_root_squash,sync,no_subtree_check)
+---------------
 
 [source,bash]
 ---------------
@@ -3092,7 +3272,7 @@ exportfs
 systemctl restart nfs-kernel-server
 ---------------
 
-- Ajouter, dans le fichier */etc/fstab* du nouveau serveur de déploiement, l'entrée pour avoir le montage NFS au démarrage.
+- Add, into file */etc/fstab* of the new deployment server an entry to have the NFS mounted after a restart.
 
 [source,bash]
 ---------------
@@ -3105,10 +3285,10 @@ For exemple, on the *Master server*:
 
 [source,bash]
 ---------------
-${IPTABLES} -t filter -A INPUT -p tcp -s ip.server.deploymeent --dport nfs -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-${IPTABLES} -t filter -A INPUT -p udp -s ip.server.deploymeent --dport nfs -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-${IPTABLES} -t filter -A OUTPUT -p tcp -d ip.server.deploymeent --sport nfs -m state --state ESTABLISHED,RELATED -j ACCEPT
-${IPTABLES} -t filter -A OUTPUT -p udp -d ip.server.deploymeent --sport nfs -m state --state ESTABLISHED,RELATED -j ACCEPT
+${IPTABLES} -t filter -A INPUT -p tcp -s ip.server.deployment --dport nfs -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+${IPTABLES} -t filter -A INPUT -p udp -s ip.server.deployment --dport nfs -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+${IPTABLES} -t filter -A OUTPUT -p tcp -d ip.server.deployment --sport nfs -m state --state ESTABLISHED,RELATED -j ACCEPT
+${IPTABLES} -t filter -A OUTPUT -p udp -d ip.server.deployment --sport nfs -m state --state ESTABLISHED,RELATED -j ACCEPT
 ---------------
 
 And on the *Deployment servers*
@@ -3119,13 +3299,15 @@ If we have a IP_SERVER and IP_SERVER2 get like this:
 ---------------
 IP_SERVER=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | head -n 1`
 IP_SERVER_V6=`ifconfig | grep -i global | sed -En 's/127.0.0.1//;s/.*inet6 (addr:)?\s?([^\s]+)/\2/p' | cut -d' ' -f1 | cut -d'/' -f1 `
-IP_SERVER2=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | sed '2 ! d'
+IP_SERVER2=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | sed '2 ! d'`
 ---------------
 
 You must add
 
 [source,bash]
 ---------------
+IP_SELLYOURSAAS_ADMIN=ip.server.master
+
 ${IPTABLES} -t filter -A OUTPUT -s $IP_SERVER -d $IP_SELLYOURSAAS_ADMIN -j ACCEPT
 ${IPTABLES} -t filter -A INPUT -s $IP_SELLYOURSAAS_ADMIN -d $IP_SERVER -j ACCEPT
 if [ "x$IP_SERVER2" != "x" ]
@@ -3936,6 +4118,9 @@ If you use an ssh port other than 22
 
 If the path of "documents" directory (DOL_DATA_ROOT) is different in deployment server (same value of "newdoldataroot" in sellyoursaas.conf)
 * SELLYOURSAAS_FORCE_DOL_DATA_ROOT = /path/of/dolibarr/documents/in/deployment/server
+
+To activate Jailkit, a chroot security system (see Jailkit configuration)
+* SELLYOURSAAS_SSH_JAILKIT_ENABLED = 1
 
 
 === TroubleShooting
