@@ -350,12 +350,18 @@ if [[ "$mode" == "deployall" ]]; then
 					else
 						if [[ ! -d "$chrootdir/$commonjailtemplatename" ]]; then
 							echo "Common jail directory $chrootdir/$commonjailtemplatename not exists, try to create it"
-							if [[ ! -f "$templatesdir/$commonjailtemplatename.tgz" ]]; then
-								echo "Failed to get jailkit common template $templatesdir/$commonjailtemplatename.tgz"
-								exit 1
+							if [[ -f "$templatesdir/$commonjailtemplatename.tar.zst" ]]; then
+									echo "tar --zstd -xf $templatesdir/$commonjailtemplatename.tar.zst --directory $chrootdir/"
+									tar --zstd -xf $templatesdir/$commonjailtemplatename.tar.zst --directory $chrootdir/
+							else
+								if [[ -f "$templatesdir/$commonjailtemplatename.tgz" ]]; then
+									echo "tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/"
+									tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/
+								else
+									echo "Failed to get jailkit common template $templatesdir/$commonjailtemplatename.[tgz|tar.zst]"
+									exit 1
+								fi
 							fi
-							echo "tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/"
-							tar -xzf $templatesdir/$commonjailtemplatename.tgz --directory $chrootdir/
 						fi
 						if [[ ! -d "$chrootdir/$commonjailtemplatename$targetdir/$osusername" ]]; then
 							echo "mkdir -p $chrootdir/$commonjailtemplatename$targetdir/$osusername"
@@ -363,33 +369,64 @@ if [[ "$mode" == "deployall" ]]; then
 						fi
 						echo "jk_jailuser -s /bin/bash -n -j $chrootdir/$commonjailtemplatename/ $osusername"
 						jk_jailuser -s /bin/bash -n -j $chrootdir/$commonjailtemplatename/ $osusername
-						echo "mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind"
-						mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind
-						echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
-						echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+						# check if already mounted
+						if mountpoint -q $chrootdir/$commonjailtemplatename$targetdir/$osusername
+						then
+							echo "$chrootdir/$commonjailtemplatename$targetdir/$osusername is already mounted"
+						else
+							echo "mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind"
+							mount $targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername -o bind
+						fi
+						# check if already declared in /etc/fstab
+						if grep -q "$chrootdir/$commonjailtemplatename$targetdir/$osusername" /etc/fstab
+						then
+							echo "$chrootdir/$commonjailtemplatename$targetdir/$osusername is already declared in /etc/fstab"
+						else
+							echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
+							echo "$targetdir/$osusername $chrootdir/$commonjailtemplatename$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+						fi
 					fi
 				else
 					# Private users jail
 					if [[ "$sshaccesstype" == "2" ]]; then
 						if [[ ! -d "$chrootdir/$osusername" ]]; then
-							if [[ "x$privatejailtemplatename" != "x" && -f "$templatesdir/$privatejailtemplatename.tgz" ]]; then
-								echo "tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/"
-								tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/
+							if [[ "x$privatejailtemplatename" != "x" && -f "$templatesdir/$privatejailtemplatename.tar.zst" ]]; then
+								echo "tar --zstd -xf $templatesdir/$privatejailtemplatename.tar.zst --directory $chrootdir/"
+								tar --zstd -xf $templatesdir/$privatejailtemplatename.tar.zst --directory $chrootdir/
 								echo "mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername"
 								mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername
 							else
-								echo "jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient"
-								jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient >/dev/null 2>&1
+								if [[ "x$privatejailtemplatename" != "x" && -f "$templatesdir/$privatejailtemplatename.tgz" ]]; then
+									echo "tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/"
+									tar -xzf $templatesdir/$privatejailtemplatename.tgz --directory $chrootdir/
+									echo "mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername"
+									mv $chrootdir/$privatejailtemplatename $chrootdir/$osusername
+								else
+									echo "jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient"
+									jk_init -c /etc/jailkit/jk_init.ini $chrootdir/$osusername extendedshell limitedshell groups sftp rsync editors git php mysqlclient >/dev/null 2>&1
+								fi
 							fi
 							echo "mkdir -p $chrootdir/$osusername$targetdir/$osusername"
 							mkdir -p $chrootdir/$osusername$targetdir/$osusername
 						fi
 						echo "jk_jailuser -s /bin/bash -n -j $chrootdir/$osusername/ $osusername"
 						jk_jailuser -s /bin/bash -n -j $chrootdir/$osusername/ $osusername
-						echo "mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind"
-						mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind
-						echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
-						echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+						# check if already mounted
+						if mountpoint -q $chrootdir/$osusername$targetdir/$osusername
+						then
+							echo "$chrootdir/$osusername$targetdir/$osusername is already mounted"
+						else
+							echo "mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind"
+							mount $targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername -o bind
+						fi
+						# check if already declared in /etc/fstab
+						if grep -q "$chrootdir/$osusername$targetdir/$osusername" /etc/fstab
+						then
+							echo "$chrootdir/$osusername$targetdir/$osusername is already declared in /etc/fstab"
+						else
+							echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0 >> /etc/fstab"
+							echo "$targetdir/$osusername $chrootdir/$osusername$targetdir/$osusername bind defaults,bind 0" >> /etc/fstab
+						fi
 					fi
 				fi
 			fi
@@ -659,12 +696,17 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 	if [ -d $dirwithsources1 ]; then
 		if [[ "x$targetdirwithsources1" != "x" ]]; then
 			mkdir -p $targetdirwithsources1
-			if [ -f $dirwithsources1.tgz ]; then
-				echo "tar -xzf $dirwithsources1.tgz --directory $targetdirwithsources1/"
-				tar -xzf $dirwithsources1.tgz --directory $targetdirwithsources1/
+			if [ -f $dirwithsources1.tar.zst ]; then
+				echo "tar --zstd -xf $dirwithsources1.tar.zst --directory $targetdirwithsources1/"
+				tar --zstd -xf $dirwithsources1.tar.zst --directory $targetdirwithsources1/
 			else
-				echo "cp -pr  $dirwithsources1/ $targetdirwithsources1"
-				cp -pr  $dirwithsources1/. $targetdirwithsources1
+				if [ -f $dirwithsources1.tgz ]; then
+					echo "tar -xzf $dirwithsources1.tgz --directory $targetdirwithsources1/"
+					tar -xzf $dirwithsources1.tgz --directory $targetdirwithsources1/
+				else
+					echo "cp -pr  $dirwithsources1/ $targetdirwithsources1"
+					cp -pr  $dirwithsources1/. $targetdirwithsources1
+				fi
 			fi
 		fi
 	fi
@@ -672,12 +714,17 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 	if [ -d $dirwithsources2 ]; then
 		if [[ "x$targetdirwithsources2" != "x" ]]; then
 			mkdir -p $targetdirwithsources2
-			if [ -f $dirwithsources2.tgz ]; then
-				echo "tar -xzf $dirwithsources2.tgz --directory $targetdirwithsources2/"
-				tar -xzf $dirwithsources2.tgz --directory $targetdirwithsources2/
+			if [ -f $dirwithsources2.tar.zst ]; then
+				echo "tar --zstd -xf $dirwithsources2.tar.zst --directory $targetdirwithsources2/"
+				tar --zstd -xf $dirwithsources2.tar.zst --directory $targetdirwithsources2/
 			else
-				echo "cp -pr  $dirwithsources2/ $targetdirwithsources2"
-				cp -pr  $dirwithsources2/. $targetdirwithsources2
+				if [ -f $dirwithsources2.tgz ]; then
+					echo "tar -xzf $dirwithsources2.tgz --directory $targetdirwithsources2/"
+					tar -xzf $dirwithsources2.tgz --directory $targetdirwithsources2/
+				else
+					echo "cp -pr  $dirwithsources2/ $targetdirwithsources2"
+					cp -pr  $dirwithsources2/. $targetdirwithsources2
+				fi
 			fi
 		fi
 	fi
@@ -685,12 +732,17 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 	if [ -d $dirwithsources3 ]; then
 		if [[ "x$targetdirwithsources3" != "x" ]]; then
 			mkdir -p $targetdirwithsources3
-			if [ -f $dirwithsources3.tgz ]; then
-				echo "tar -xzf $dirwithsources3.tgz --directory $targetdirwithsources3/"
-				tar -xzf $dirwithsources3.tgz --directory $targetdirwithsources3/
+			if [ -f $dirwithsources3.tar.zst ]; then
+				echo "tar --zstd -xf $dirwithsources3.tar.zst --directory $targetdirwithsources3/"
+				tar --zstd -xzf $dirwithsources3.tar.zst --directory $targetdirwithsources3/
 			else
-				echo "cp -pr  $dirwithsources3/ $targetdirwithsources3"
-				cp -pr  $dirwithsources3/. $targetdirwithsources3
+				if [ -f $dirwithsources3.tgz ]; then
+					echo "tar -xzf $dirwithsources3.tgz --directory $targetdirwithsources3/"
+					tar -xzf $dirwithsources3.tgz --directory $targetdirwithsources3/
+				else
+					echo "cp -pr  $dirwithsources3/ $targetdirwithsources3"
+					cp -pr  $dirwithsources3/. $targetdirwithsources3
+				fi
 			fi
 		fi
 	fi
@@ -746,8 +798,13 @@ if [[ "$mode" == "undeploy" || "$mode" == "undeployall" ]]; then
 				mkdir $archivedir/$osusername
 				mkdir $archivedir/$osusername/$dbname
 				if [[ "x$ispaidinstance" == "x1" ]]; then
-					echo tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
-					tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+					if [[ -x /usr/bin/zstd ]]; then
+						echo tar c --zstd --exclude-vcs -f $archivedir/$osusername/$osusername.tar.zst $targetdir/$osusername/$dbname
+						tar c --zstd --exclude-vcs -f $archivedir/$osusername/$osusername.tar.zst $targetdir/$osusername/$dbname
+					else
+						echo tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+						tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+					fi
 					echo `date +%Y%m%d%H%M%S`
 					echo rm -fr $targetdir/$osusername/$dbname
 					rm -fr $targetdir/$osusername/$dbname
@@ -758,10 +815,19 @@ if [[ "$mode" == "undeploy" || "$mode" == "undeployall" ]]; then
 					chmod -R o-rwx $archivedir/$osusername/$dbname
 				else
 					if [[ "x$archivetestinstances" == "x0" ]]; then
-						echo "Archive of test instances are disabled. We discard the tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname"
+						if [[ -x /usr/bin/zstd ]]; then
+							echo "Archive of test instances are disabled. We discard the tar c --zstd --exclude-vcs -f $archivedir/$osusername/$osusername.tar.zst $targetdir/$osusername/$dbname"
+						else
+							echo "Archive of test instances are disabled. We discard the tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname"
+						fi
 					else
-						echo tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
-						tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+						if [[ -x /usr/bin/zstd ]]; then
+							echo tar c --zstd --exclude-vcs -f $archivedir/$osusername/$osusername.tar.zst $targetdir/$osusername/$dbname
+							tar c --zstd --exclude-vcs -f $archivedir/$osusername/$osusername.tar.zst $targetdir/$osusername/$dbname
+						else
+							echo tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+							tar cz --exclude-vcs -f $archivedir/$osusername/$osusername.tar.gz $targetdir/$osusername/$dbname
+						fi
 					fi
 					echo `date +%Y%m%d%H%M%S`
 					echo rm -fr $targetdir/$osusername/$dbname
@@ -897,32 +963,35 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 		if [[ "x$CERTIFFORCUSTOMDOMAIN" != "x" ]]; then
 			export pathforcertif=`dirname $fileforconfig1`
 			export pathforcertif=`dirname $pathforcertif`
+			export webCustomSSLCertificateCRT=$CERTIFFORCUSTOMDOMAIN.crt
+			export webCustomSSLCertificateKEY=$CERTIFFORCUSTOMDOMAIN.key
+			export webCustomSSLCertificateIntermediate=$CERTIFFORCUSTOMDOMAIN-intermediate.crt
 		
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.crt"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateCRT ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateCRT to $pathforcertif/crt/$webCustomSSLCertificateCRT"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateCRT /etc/apache2/$webCustomSSLCertificateCRT
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt to /etc/apache2/with.sellyoursaas.com.crt"
-					ln -fs /etc/apache2/with.sellyoursaas.com.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateCRT ]]; then
+					echo "Create link /etc/apache2/$webCustomSSLCertificateCRT to /etc/apache2/$webSSLCertificateCRT"
+					ln -fs /etc/apache2/$webSSLCertificateCRT /etc/apache2/webCustomSSLCertificateCRT
 				fi
 			fi
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.key"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.key /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateKEY ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateKEY to $pathforcertif/crt/$webCustomSSLCertificateKEY"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateKEY /etc/apache2/$webCustomSSLCertificateKEY
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key to /etc/apache2/with.sellyoursaas.com.key"
-					ln -fs /etc/apache2/with.sellyoursaas.com.key /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateKEY ]]; then
+					echo "Create link /etc/apache2/$webCustomSSLCertificateKEY to /etc/apache2/$webSSLCertificateKEY"
+					ln -fs /etc/apache2/$webSSLCertificateKEY /etc/apache2/$webCustomSSLCertificateKEY
 				fi
 			fi
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN-intermediate.crt"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN-intermediate.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateIntermediate ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateIntermediate to $pathforcertif/crt/$webCustomSSLCertificateIntermediate"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateIntermediate /etc/apache2/$webCustomSSLCertificateIntermediate
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt to /etc/apache2/with.sellyoursaas.com-intermediate.crt"
-					ln -fs /etc/apache2/with.sellyoursaas.com-intermediate.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateIntermediate ]]; then
+					echo "Create link /etc/apache2/$webCustomSSLCertificateIntermediate to /etc/apache2/$webSSLCertificateIntermediate"
+					ln -fs /etc/apache2/$webSSLCertificateIntermediate /etc/apache2/$webCustomSSLCertificateIntermediate
 				fi
 			fi
 		fi
@@ -930,9 +999,9 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 		echo "cat $vhostfile | sed -e 's/__webAppDomain__/$customurl/g' | \
 				  sed -e 's/__webAppAliases__/$customurl/g' | \
 				  sed -e 's/__webAppLogName__/$instancename/g' | \
-                  sed -e 's/__webSSLCertificateCRT__/$webSSLCertificateCRT/g' | \
-                  sed -e 's/__webSSLCertificateKEY__/$webSSLCertificateKEY/g' | \
-                  sed -e 's/__webSSLCertificateIntermediate__/$webSSLCertificateIntermediate/g' | \
+                  sed -e 's/__webSSLCertificateCRT__/$webCustomSSLCertificateCRT/g' | \
+                  sed -e 's/__webSSLCertificateKEY__/$webCustomSSLCertificateKEY/g' | \
+                  sed -e 's/__webSSLCertificateIntermediate__/$webCustomSSLCertificateIntermediate/g' | \
 				  sed -e 's/__webAdminEmail__/$EMAILFROM/g' | \
 				  sed -e 's/__osUsername__/$osusername/g' | \
 				  sed -e 's/__osGroupname__/$osusername/g' | \
@@ -947,9 +1016,9 @@ if [[ "$mode" == "deploy" || "$mode" == "deployall" ]]; then
 		cat $vhostfile | sed -e "s/__webAppDomain__/$customurl/g" | \
 				  sed -e "s/__webAppAliases__/$customurl/g" | \
 				  sed -e "s/__webAppLogName__/$instancename/g" | \
-                  sed -e "s/__webSSLCertificateCRT__/$webSSLCertificateCRT/g" | \
-                  sed -e "s/__webSSLCertificateKEY__/$webSSLCertificateKEY/g" | \
-                  sed -e "s/__webSSLCertificateIntermediate__/$webSSLCertificateIntermediate/g" | \
+                  sed -e "s/__webSSLCertificateCRT__/$webCustomSSLCertificateCRT/g" | \
+                  sed -e "s/__webSSLCertificateKEY__/$webCustomSSLCertificateKEY/g" | \
+                  sed -e "s/__webSSLCertificateIntermediate__/$webCustomSSLCertificateIntermediate/g" | \
 				  sed -e "s/__webAdminEmail__/$EMAILFROM/g" | \
 				  sed -e "s/__osUsername__/$osusername/g" | \
 				  sed -e "s/__osGroupname__/$osusername/g" | \
@@ -1154,8 +1223,13 @@ if [[ "$mode" == "undeploy" || "$mode" == "undeployall" ]]; then
 
 	echo "Do a dump of database $dbname - may fails if already removed"
 	mkdir -p $archivedir/$osusername
-	echo "$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -pXXXXXX $dbname | gzip > $archivedir/$osusername/dump.$dbname.$now.sql.gz"
-	$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -p$dbadminpass $dbname | gzip > $archivedir/$osusername/dump.$dbname.$now.sql.gz
+	if [[ -x /usr/bin/zstd ]]; then
+		echo "$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -pXXXXXX $dbname | zstd -z -9 -q > $archivedir/$osusername/dump.$dbname.$now.sql.zst"
+		$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -p$dbadminpass $dbname | zstd -z -9 -q > $archivedir/$osusername/dump.$dbname.$now.sql.zst
+	else
+		echo "$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -pXXXXXX $dbname | gzip > $archivedir/$osusername/dump.$dbname.$now.sql.gz"
+		$MYSQLDUMP -h $dbserverhost -P $dbserverport -u$dbadminuser -p$dbadminpass $dbname | gzip > $archivedir/$osusername/dump.$dbname.$now.sql.gz
+	fi
 
 	if [[ "x$?" == "x0" ]]; then
 		echo "Now drop the database"

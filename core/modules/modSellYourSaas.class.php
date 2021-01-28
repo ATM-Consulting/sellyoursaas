@@ -58,7 +58,7 @@ class modSellYourSaas extends DolibarrModules
 		$this->picto='sellyoursaas@sellyoursaas';
 
 		// Data directories to create when module is enabled
-		$this->dirs = array('/sellyoursaas/temp','/sellyoursaas/packages','/sellyoursaas/git','/sellyoursaas/crt');
+		$this->dirs = array('/sellyoursaas/temp','/sellyoursaas/packages','/sellyoursaas/git','/sellyoursaas/crt','/sellyoursaas/spam');
 
 		// Config pages. Put here list of php page names stored in admmin directory used to setup module
 		$this->config_page_url = array("setup.php@sellyoursaas");
@@ -101,8 +101,8 @@ class modSellYourSaas extends DolibarrModules
 			7=>array('INVOICE_ALLOW_EXTERNAL_DOWNLOAD', 'chaine', '1', 'Invoice can be downloaded with a public link', 0, 'current', 0),
 			8=>array('SELLYOURSAAS_NBHOURSBETWEENTRIES', 'chaine', 49, 'Nb hours minium between each try', 1, 'current', 0),
 			9=>array('SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES', 'chaine', 35, 'Nb days before stopping invoice payment try', 1, 'current', 0),
+			10=>array('AUDIT_ENABLE_PREFIX_SESSION', 'chaine', 1, 'Enable column prefix session in audit view', 1, 'current', 0),
 		);
-
 
 		if (! isset($conf->sellyoursaas) || ! isset($conf->sellyoursaas->enabled))
 		{
@@ -624,14 +624,15 @@ class modSellYourSaas extends DolibarrModules
 		$resultx=$extrafields->addExtraField('deployment_date_start',         "DeploymentDateStart", 'datetime', 106,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('deployment_date_end',             "DeploymentDateEnd", 'datetime', 106,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('deployment_ip',                        "DeploymentIP",  'varchar', 107, '128',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
-		$resultx=$extrafields->addExtraField('deployment_vpn_proba',         "DeploymentIPVPNProba",   'double', 107, '8,4',    'contrat', 0, 0,    '',      '', 1, '', -1, 'DeploymentIPVPNProbaDesc', '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
-		$resultx=$extrafields->addExtraField('deployment_ua',                 "DeploymentUserAgent",  'varchar', 107, '255',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
-		$resultx=$extrafields->addExtraField('date_softalert_endfreeperiod',"DateSoftAlertEndTrial", 'datetime', 108,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
+		$resultx=$extrafields->addExtraField('deployment_vpn_proba',         "DeploymentIPVPNProba",   'double', 107, '8,4',    'contrat', 0, 0,    '',      '', 1, '', -1, 'DeploymentIPVPNProbaDesc:ipvpnprob', '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
+		$resultx=$extrafields->addExtraField('deployment_ipquality',         "DeploymentIPQuality",   'varchar', 107, '255',    'contrat', 0, 0,    '',      '', 1, '', -1,  'DeploymentIPQualityDesc:ipquality', '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
+		$resultx=$extrafields->addExtraField('deployment_ua',                 "DeploymentUserAgent",  'varchar', 108, '255',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
+		$resultx=$extrafields->addExtraField('date_softalert_endfreeperiod',"DateSoftAlertEndTrial", 'datetime', 109,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('date_endfreeperiod',                   "DateEndTrial", 'datetime', 110,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('undeployment_date',                "UndeploymentDate", 'datetime', 111,    '',    'contrat', 0, 0,    '',      '', 1, '',  1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('undeployment_ip',                    "UndeploymentIP",  'varchar', 112, '128',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('custom_url',                              "CustomURL",  'varchar', 117, '128',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
-		$resultx=$extrafields->addExtraField('custom_virtualhostline',      "CustomVirtualHostLine",  'varchar', 119, '255',    'contrat', 0, 0,    '',      '', 1, '', -1, 'EnterAVirtualHostLine', '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
+		$resultx=$extrafields->addExtraField('custom_virtualhostline',      "CustomVirtualHostLine",  'varchar', 119, '255',    'contrat', 0, 0,    '',      '', 1, '', -1, 'EnterAVirtualHostLine:virthostline', '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('hostname_os',                           "Hostname OS",  'varchar', 120, '128',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('username_os',                           "Username OS",  'varchar', 121,  '32',    'contrat', 1, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');
 		$resultx=$extrafields->addExtraField('password_os',                           "Password OS",  'varchar', 122,  '32',    'contrat', 0, 0,    '',      '', 1, '', -1, 0, '', '', 'sellyoursaas@sellyoursaas', '$conf->sellyoursaas->enabled');

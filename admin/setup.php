@@ -145,6 +145,8 @@ if ($action == 'set')
 
 		dolibarr_set_const($db,'SELLYOURSAAS_MAXDEPLOYMENTPERIP',GETPOST("SELLYOURSAAS_MAXDEPLOYMENTPERIP",'int'),'chaine',0,'',$conf->entity);
 		dolibarr_set_const($db,'SELLYOURSAAS_MAXDEPLOYMENTPERIPPERHOUR',GETPOST("SELLYOURSAAS_MAXDEPLOYMENTPERIPPERHOUR",'int'),'chaine',0,'',$conf->entity);
+		dolibarr_set_const($db,'SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT',GETPOST("SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT",'int'),'chaine',0,'',$conf->entity);
+		dolibarr_set_const($db,'SELLYOURSAAS_VPN_PROBA_REFUSED',GETPOST("SELLYOURSAAS_VPN_PROBA_REFUSED",'alphanohtml'),'chaine',0,'',$conf->entity);
 
 		dolibarr_set_const($db,'SELLYOURSAAS_INFRA_COST',GETPOST("SELLYOURSAAS_INFRA_COST",'int'),'chaine',0,'',$conf->entity);
 		dolibarr_set_const($db,"SELLYOURSAAS_NBHOURSBETWEENTRIES",GETPOST("SELLYOURSAAS_NBHOURSBETWEENTRIES",'none'),'chaine',0,'Nb hours minium between each invoice payment try',$conf->entity);
@@ -170,9 +172,8 @@ if ($action == 'set')
 		//if (! dol_is_dir($dir) && ! dol_is_link($dir)) setEventMessage($langs->trans("ErrorDirNotFound",$dir),'warnings');
 		dolibarr_set_const($db,"SELLYOURSAAS_PAID_ARCHIVES_PATH",GETPOST("SELLYOURSAAS_PAID_ARCHIVES_PATH"),'chaine',0,'',$conf->entity);
 
-		$dir=GETPOST("SELLYOURSAAS_NAME_RESERVED");
-		//if (! dol_is_dir($dir) && ! dol_is_link($dir)) setEventMessage($langs->trans("ErrorDirNotFound",$dir),'warnings');
 		dolibarr_set_const($db,"SELLYOURSAAS_NAME_RESERVED",GETPOST("SELLYOURSAAS_NAME_RESERVED"),'chaine',0,'',$conf->entity);
+		dolibarr_set_const($db,"SELLYOURSAAS_EMAIL_ADDRESSES_BANNED",GETPOST("SELLYOURSAAS_EMAIL_ADDRESSES_BANNED"),'chaine',0,'',$conf->entity);
 
 		// Save images
 		$dirforimage=$conf->mycompany->dir_output.'/logos/';
@@ -328,15 +329,15 @@ print '<form enctype="multipart/form-data" method="POST" action="'.$_SERVER["PHP
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="set">';
 
+print '<div class="div-table-responsive">'; // You can use div-table-responsive-no-min if you dont need reserved height for your table
 print '<table class="noborder" width="100%">';
 print '<tr class="liste_titre">';
 print '<td class="titlefield">'.$langs->trans("ParametersOnMasterServer").'</td><td>'.$langs->trans("Value").'</td>';
-print '<td class="titlefield">'.$langs->trans("Examples").'<div class="floatright"><input type="submit" class="button buttongen" value="'.$langs->trans("Save").'"></div></td>';
+print '<td class="titlefield"><div class="float">'.$langs->trans("Examples").'</div><div class="floatright"><input type="submit" class="button buttongen" value="'.$langs->trans("Save").'"></div></td>';
 print "</tr>\n";
 
 print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_FORCE_STRIPE_TEST").'</td>';
 print '<td>';
-//print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_FORCE_STRIPE_TEST" value="'.$conf->global->SELLYOURSAAS_FORCE_STRIPE_TEST.'">';
 print ajax_constantonoff('SELLYOURSAAS_FORCE_STRIPE_TEST', array(), $conf->entity, 0, 0, 1);
 print '</td>';
 print '<td><span class="opacitymedium">1</span></td>';
@@ -350,35 +351,35 @@ print '<input class="minwidth300" type="text" name="SELLYOURSAAS_MAIN_FAQ_URL" v
 print '</td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasName").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasName").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_NAME" value="'.$conf->global->SELLYOURSAAS_NAME.'" class="minwidth300">';
 print '</td>';
 print '<td><span class="opacitymedium">My SaaS service</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasMainDomain").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasMainDomain").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_MAIN_DOMAIN_NAME" value="'.$conf->global->SELLYOURSAAS_MAIN_DOMAIN_NAME.'" class="minwidth300">';
 print '</td>';
 print '<td><span class="opacitymedium">mysaasdomainname.com</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$form->textwithpicto($langs->trans("SellYourSaasSubDomains"), $langs->trans("SellYourSaasSubDomainsHelp")).'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$form->textwithpicto($langs->trans("SellYourSaasSubDomains"), $langs->trans("SellYourSaasSubDomainsHelp")).'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_SUB_DOMAIN_NAMES" value="'.$conf->global->SELLYOURSAAS_SUB_DOMAIN_NAMES.'" class="minwidth300">';
 print '</td>';
 print '<td><span class="opacitymedium">with.mysaasdomainname.com,with.mysaas2.com:mysaas2.com...</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasSubDomainsIP").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasSubDomainsIP").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_SUB_DOMAIN_IP" value="'.$conf->global->SELLYOURSAAS_SUB_DOMAIN_IP.'" class="minwidth300">';
 print '</td>';
 print '<td><span class="opacitymedium">192.168.0.1,123.456.789.012...</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasMainEmail").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasMainEmail").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_MAIN_EMAIL" value="'.$conf->global->SELLYOURSAAS_MAIN_EMAIL.'" class="minwidth300">';
 print '</td>';
@@ -392,14 +393,14 @@ print '</td>';
 print '<td><span class="opacitymedium">contact+premium@mysaasdomainname.com</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasSupervisionEmail").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasSupervisionEmail").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_SUPERVISION_EMAIL" value="'.$conf->global->SELLYOURSAAS_SUPERVISION_EMAIL.'" class="minwidth300">';
 print '</td>';
 print '<td><span class="opacitymedium">supervision@mysaasdomainname.com</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasNoReplyEmail").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasNoReplyEmail").'</td>';
 print '<td>';
 print '<input type="text" name="SELLYOURSAAS_NOREPLY_EMAIL" value="'.$conf->global->SELLYOURSAAS_NOREPLY_EMAIL.'" class="minwidth300">';
 print '</td>';
@@ -417,7 +418,7 @@ foreach($arrayofsuffixfound as $service => $suffix)
 {
     print '<!-- suffix = '.$suffix.' -->'."\n";
 
-    print '<tr class="oddeven"><td>'.$service.' - '.$langs->trans("DefaultProductForInstances").'</td>';
+    print '<tr class="oddeven"><td>'.($service ? $service.' - ' : '').$langs->trans("DefaultProductForInstances").'</td>';
     print '<td>';
     $constname = 'SELLYOURSAAS_DEFAULT_PRODUCT'.$suffix;
     print '<!-- constname = '.$constname.' -->';
@@ -437,7 +438,7 @@ print '<td>My SaaS service for users</td>';
 print '</tr>';
 */
 
-print '<tr class="oddeven"><td>'.$langs->trans("DefaultCategoryForSaaSServices").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("DefaultCategoryForSaaSServices").'</td>';
 print '<td>';
 $defaultproductcategid=$conf->global->SELLYOURSAAS_DEFAULT_PRODUCT_CATEG;
 print $formother->select_categories(Categorie::TYPE_PRODUCT, $defaultproductcategid, 'SELLYOURSAAS_DEFAULT_PRODUCT_CATEG', 0, 1, 'miwidth300');
@@ -445,7 +446,7 @@ print '</td>';
 print '<td><span class="opacitymedium">SaaS Products</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("DefaultCategoryForSaaSCustomers").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("DefaultCategoryForSaaSCustomers").'</td>';
 print '<td>';
 $defaultcustomercategid=$conf->global->SELLYOURSAAS_DEFAULT_CUSTOMER_CATEG;
 print $formother->select_categories(Categorie::TYPE_CUSTOMER, $defaultcustomercategid, 'SELLYOURSAAS_DEFAULT_CUSTOMER_CATEG', 0, 1, 'miwidth300');
@@ -506,7 +507,7 @@ print '</td>';
 print '<td><span class="opacitymedium">https://admin.mysaasdomainname.com/git</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SellYourSaasAccountUrl").'</td>';
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("SellYourSaasAccountUrl").'</td>';
 print '<td>';
 print '<input class="minwidth300" type="text" name="SELLYOURSAAS_ACCOUNT_URL" value="'.$conf->global->SELLYOURSAAS_ACCOUNT_URL.'">';
 print '</td>';
@@ -541,21 +542,21 @@ print '</td>';
 print '<td><span class="opacitymedium">&lt;script&gt;Your conversion trackers&lt;/script&gt;</span></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("AnonymousUser").'</td>';
+// Other
+
+print '<tr class="liste_titre"><td>'.$langs->trans("Automation").'</td>';
+print '<td>';
+print '</td>';
+print '<td>';
+print '</td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td class="fieldrequired">'.$langs->trans("AnonymousUser").'</td>';
 print '<td>';
 print $form->select_dolusers($conf->global->SELLYOURSAAS_ANONYMOUSUSER, 'SELLYOURSAAS_ANONYMOUSUSER', 1);
 print '</td>';
 print '<td><span class="opacitymedium">User used for all anonymous action (registering, actions from customer dashboard, ...)</span></td>';
 print '</tr>';
-
-
-print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NAME_RESERVED").'</td>';
-print '<td>';
-print '<input class="minwidth300" type="text" name="SELLYOURSAAS_NAME_RESERVED" value="'.$conf->global->SELLYOURSAAS_NAME_RESERVED.'">';
-print '</td>';
-print '<td><span class="opacitymedium">^mycompany[0-9]*\.</span></td>';
-print '</tr>';
-
 
 print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_HASHALGOFORPASSWORD").'</td>';
 print '<td>';
@@ -608,11 +609,34 @@ print '</td>';
 print '<td><span class="opacitymedium">30</span></td>';
 print '</tr>';
 
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NBHOURSBETWEENTRIES").'</td>';
+print '<td>';
+print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_NBHOURSBETWEENTRIES" value="'.$conf->global->SELLYOURSAAS_NBHOURSBETWEENTRIES.'">';
+print '</td>';
+print '<td><span class="opacitymedium">49</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES").'</td>';
+print '<td>';
+print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES" value="'.$conf->global->SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES.'">';
+print '</td>';
+print '<td><span class="opacitymedium">35</span></td>';
+print '</tr>';
+
 print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NBDAYS_AFTER_EXPIRATION_BEFORE_PAID_UNDEPLOYMENT").'</td>';
 print '<td>';
 print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_NBDAYS_AFTER_EXPIRATION_BEFORE_PAID_UNDEPLOYMENT" value="'.$conf->global->SELLYOURSAAS_NBDAYS_AFTER_EXPIRATION_BEFORE_PAID_UNDEPLOYMENT.'">';
 print '</td>';
 print '<td><span class="opacitymedium">120</span></td>';
+print '</tr>';
+
+// Security for subscription
+
+print '<tr class="liste_titre"><td>'.$langs->trans("SecurityOfRegistrations").'</td>';
+print '<td>';
+print '</td>';
+print '<td>';
+print '</td>';
 print '</tr>';
 
 print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_MAXDEPLOYMENTPERIP").'</td>';
@@ -629,25 +653,62 @@ print '</td>';
 print '<td><span class="opacitymedium">5</span></td>';
 print '</tr>';
 
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT").'</td>';
+print '<td>';
+print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT" value="'.(empty($conf->global->SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT)?4:$conf->global->SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT).'">';
+print '</td>';
+print '<td><span class="opacitymedium">4</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_VPN_PROBA_REFUSED").'</td>';
+print '<td>';
+print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_VPN_PROBA_REFUSED" value="'.(empty($conf->global->SELLYOURSAAS_VPN_PROBA_REFUSED)?'':$conf->global->SELLYOURSAAS_VPN_PROBA_REFUSED).'">';
+print '</td>';
+print '<td><span class="opacitymedium">0.9, 1, Keep empty for no filter on VPN probability</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NAME_RESERVED").'</td>';
+print '<td>';
+print '<input class="minwidth300" type="text" name="SELLYOURSAAS_NAME_RESERVED" value="'.$conf->global->SELLYOURSAAS_NAME_RESERVED.'">';
+print '</td>';
+print '<td><span class="opacitymedium">^mycompany[0-9]*\.</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_EMAIL_ADDRESSES_BANNED").'</td>';
+print '<td>';
+print '<input class="minwidth300" type="text" name="SELLYOURSAAS_EMAIL_ADDRESSES_BANNED" value="'.$conf->global->SELLYOURSAAS_EMAIL_ADDRESSES_BANNED.'">';
+print '</td>';
+print '<td><span class="opacitymedium">yopmail.com,hotmail.com,spammer@gmail.com</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_GETIPINTEL_EMAIL").'</td>';
+print '<td>';
+print '<input class="minwidth300" type="text" name="SELLYOURSAAS_GETIPINTEL_EMAIL" value="'.$conf->global->SELLYOURSAAS_GETIPINTEL_EMAIL.'">';
+print '</td>';
+print '<td><span class="opacitymedium">myemail@email.com</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_IPQUALITY_KEY").'</td>';
+print '<td>';
+print '<input class="minwidth300" type="text" name="SELLYOURSAAS_IPQUALITY_KEY" value="'.$conf->global->SELLYOURSAAS_IPQUALITY_KEY.'">';
+print '</td>';
+print '<td><span class="opacitymedium">1234567890123456</span></td>';
+print '</tr>';
+
+// Other
+
+print '<tr class="liste_titre"><td>'.$langs->trans("Other").'</td>';
+print '<td>';
+print '</td>';
+print '<td>';
+print '</td>';
+print '</tr>';
+
 print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_INFRA_COST").'</td>';
 print '<td>';
 print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_INFRA_COST" value="'.(empty($conf->global->SELLYOURSAAS_INFRA_COST)?0:$conf->global->SELLYOURSAAS_INFRA_COST).'">';
 print '</td>';
 print '<td><span class="opacitymedium">5</span></td>';
-print '</tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NBHOURSBETWEENTRIES").'</td>';
-print '<td>';
-print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_NBHOURSBETWEENTRIES" value="'.$conf->global->SELLYOURSAAS_NBHOURSBETWEENTRIES.'">';
-print '</td>';
-print '<td><span class="opacitymedium">49</span></td>';
-print '</tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES").'</td>';
-print '<td>';
-print '<input class="maxwidth50" type="text" name="SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES" value="'.$conf->global->SELLYOURSAAS_NBDAYSBEFOREENDOFTRIES.'">';
-print '</td>';
-print '<td><span class="opacitymedium">35</span></td>';
 print '</tr>';
 
 foreach($arrayofsuffixfound as $service => $suffix)
@@ -748,27 +809,14 @@ print '</td>';
 print '<td></td>';
 print '</tr>';
 
-print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_GETIPINTEL_EMAIL").'</td>';
-print '<td>';
-print '<input class="minwidth300" type="text" name="SELLYOURSAAS_GETIPINTEL_EMAIL" value="'.$conf->global->SELLYOURSAAS_GETIPINTEL_EMAIL.'">';
-print '</td>';
-print '<td><span class="opacitymedium">myemail@email.com</span></td>';
-print '</tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans("SELLYOURSAAS_IPQUALITY_KEY").'</td>';
-print '<td>';
-print '<input class="minwidth300" type="text" name="SELLYOURSAAS_IPQUALITY_KEY" value="'.$conf->global->SELLYOURSAAS_IPQUALITY_KEY.'">';
-print '</td>';
-print '<td><span class="opacitymedium">1234567890123456</span></td>';
-print '</tr>';
-
-
 print '</table>';
+print '</div>';
 
 
 print '<br>';
 
 
+print '<div class="div-table-responsive">'; // You can use div-table-responsive-no-min if you dont need reserved height for your table
 print '<table class="noborder" width="100%">';
 print '<tr class="liste_titre">';
 print '<td class="titlefield">'.$langs->trans("ParametersOnDeploymentServers").'</td><td class="titlefield">'.$langs->trans("Value").'</td>';
@@ -839,6 +887,7 @@ print '<td><span class="opacitymedium">Password to use to create a support user 
 print '</tr>';
 
 print '</table>';
+print '</div>';
 
 print "</form>\n";
 
@@ -859,14 +908,16 @@ var_dump(DOL_MAIN_URL_ROOT);
 
 $message='';
 $url='<a href="'.dol_buildpath('/sellyoursaas/public/spamreport.php', 3).'?key='.($conf->global->SELLYOURSAAS_SECURITY_KEY?urlencode($conf->global->SELLYOURSAAS_SECURITY_KEY):'...').'" target="_blank">'.dol_buildpath('/sellyoursaas/public/spamreport.php', 3).'?key='.($conf->global->SELLYOURSAAS_SECURITY_KEY?urlencode($conf->global->SELLYOURSAAS_SECURITY_KEY):'KEYNOTDEFINED').'</a>';
-$message.=img_picto('', 'object_globe.png').' '.$langs->trans("EndPointFor", "SpamReport", $url);
+$message.=img_picto('', 'object_globe.png').' '.$langs->trans("EndPointFor", "SpamReport", '{s1}');
+$message = str_replace('{s1}', $url, $message);
 print $message;
 
 print '<br>';
 
 $message='';
 $url='<a href="'.dol_buildpath('/sellyoursaas/myaccount/public/test.php', 3).'?key='.($conf->global->SELLYOURSAAS_SECURITY_KEY?urlencode($conf->global->SELLYOURSAAS_SECURITY_KEY):'...').'" target="_blank">'.dol_buildpath('/sellyoursaas/public/test.php', 3).'?key='.($conf->global->SELLYOURSAAS_SECURITY_KEY?urlencode($conf->global->SELLYOURSAAS_SECURITY_KEY):'KEYNOTDEFINED').'</a>';
-$message.=img_picto('', 'object_globe.png').' '.$langs->trans("EndPointFor", "Test", $url);
+$message.=img_picto('', 'object_globe.png').' '.$langs->trans("EndPointFor", "Test", '{s1}');
+$message = str_replace('{s1}', $url, $message);
 print $message;
 
 print "<br>";

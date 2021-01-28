@@ -393,8 +393,8 @@ if (empty($_COOKIE[$cookieregistrationa])) setcookie($cookieregistrationa, 1, 0,
 		<div class="signup2 centpercent">
 
 			<?php
-			if (! empty($tmpproduct->array_options['options_register_text']))
-			{
+			if (! empty($tmpproduct->array_options['options_register_text'])) {
+				print '<!-- show custom registration text of service -->';
 			    print '<div class="register_text">'.$langs->trans($tmpproduct->array_options['options_register_text']).'</div>';
 			}
 			?>
@@ -414,6 +414,7 @@ if (empty($_COOKIE[$cookieregistrationa])) setcookie($cookieregistrationa, 1, 0,
 	          <input type="hidden" name="fromsocid" value="<?php echo dol_escape_htmltag($fromsocid); ?>" />
 	          <input type="hidden" name="origin" value="<?php echo dol_escape_htmltag($origin); ?>" />
 	          <input type="hidden" name="disablecustomeremail" value="<?php echo dol_escape_htmltag($disablecustomeremail); ?>" />
+	          <!-- thirdpartyidinsession = <?php echo $_SESSION['dol_loginsellyoursaas']; ?> -->
 
 	          <section id="enterUserAccountDetails">
 
@@ -583,6 +584,11 @@ if (empty($_COOKIE[$cookieregistrationa])) setcookie($cookieregistrationa, 1, 0,
 	                		$randomindex = mt_rand(0, $maxforrandom);
 	                		$randomselect = $domainstosuggest[$randomindex];
 	                	}
+	                	// Force selection with no way to change value if SELLYOURSAAS_FORCE_RANDOM_SELECTION is set
+	                	if (!empty($conf->global->SELLYOURSAAS_FORCE_RANDOM_SELECTION) && !empty($randomselect)) {
+	                		$domainstosuggest = array();
+	                		$domainstosuggest[] = $randomselect;
+	                	}
 	                	foreach($domainstosuggest as $val) {
 	                		print '<option value="'.$val.'"'.(($tldid == $val || ($val == '.'.GETPOST('forcesubdomain', 'alpha')) || $val == $randomselect) ? ' selected="selected"':'').'>'.$val.'</option>';
 	                	}
@@ -623,7 +629,7 @@ if (empty($_COOKIE[$cookieregistrationa])) setcookie($cookieregistrationa, 1, 0,
 			<br>
 	        <section id="optinmessagesid">
 				<input type="checkbox" id="optinmessages" name="optinmessages" class="valignmiddle inline" style="margin-top: 0" value="1">
-				<label for="optinmessages" class="valignmiddle small inline"><?php echo $langs->trans("OptinForCommercialMessagesOnMyAccount"); ?></label>
+				<label for="optinmessages" class="valignmiddle small inline"><?php echo $langs->trans("OptinForCommercialMessagesOnMyAccount", $sellyoursaasname); ?></label>
 			</section>
 			<?php } ?>
 
@@ -652,13 +658,13 @@ if (empty($_COOKIE[$cookieregistrationa])) setcookie($cookieregistrationa, 1, 0,
 	          	if ($productref != 'none')
 	          	{
 	          	?>
-	            	<input type="submit"<?php echo $disabled; ?> name="submit" style="margin: 10px;" value="<?php echo $langs->trans("SignMeUp") ?>" class="btn btn-primary" id="submit" />
+	            	<input type="submit"<?php echo $disabled; ?> name="newinstance" style="margin: 10px;" value="<?php echo $langs->trans("SignMeUp") ?>" class="btn btn-primary" id="newinstance" />
 	            <?php
 	          	}
 	          	else
 	          	{
 	          	?>
-	            	<input type="submit"<?php echo $disabled; ?> name="submit" style="margin: 10px;" value="<?php echo $langs->trans("CreateMyAccount") ?>" class="btn btn-primary" id="submit" />
+	            	<input type="submit"<?php echo $disabled; ?> name="newinstance" style="margin: 10px;" value="<?php echo $langs->trans("CreateMyAccount") ?>" class="btn btn-primary" id="newinstance" />
 	          	<?php
 	          	}
 	          	?>

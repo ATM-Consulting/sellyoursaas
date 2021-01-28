@@ -290,32 +290,38 @@ if [[ "$mode" == "rename" ]]; then
 		if [[ "x$CERTIFFORCUSTOMDOMAIN" != "x" ]]; then
 			export pathforcertif=`dirname $fileforconfig1`
 			export pathforcertif=`dirname $pathforcertif`
+			export webCustomSSLCertificateCRT=$CERTIFFORCUSTOMDOMAIN.crt
+			export webCustomSSLCertificateKEY=$CERTIFFORCUSTOMDOMAIN.key
+			export webCustomSSLCertificateIntermediate=$CERTIFFORCUSTOMDOMAIN-intermediate.crt
 		
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.crt"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateCRT ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateCRT to $pathforcertif/crt/$webCustomSSLCertificateCRT"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateCRT /etc/apache2/$webCustomSSLCertificateCRT
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt to /etc/apache2/with.sellyoursaas.com.crt"
-					ln -fs /etc/apache2/with.sellyoursaas.com.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN.crt
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateCRT ]]; then
+					echo "Previous link not valid, so we create it to /etc/apache2/$webSSLCertificateCRT"
+					echo "ln -fs /etc/apache2/$webSSLCertificateCRT /etc/apache2/$webCustomSSLCertificateCRT"
+					ln -fs /etc/apache2/$webSSLCertificateCRT /etc/apache2/$webCustomSSLCertificateCRT
 				fi
 			fi
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.key"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN.key /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateKEY ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateKEY to $pathforcertif/crt/$webCustomSSLCertificateKEY"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateKEY /etc/apache2/$webCustomSSLCertificateKEY
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key to /etc/apache2/with.sellyoursaas.com.key"
-					ln -fs /etc/apache2/with.sellyoursaas.com.key /etc/apache2/$CERTIFFORCUSTOMDOMAIN.key
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateKEY ]]; then
+					echo "Previous link not valid, so we create it to /etc/apache2/$webSSLCertificateKEY"
+					echo "ln -fs /etc/apache2/$webSSLCertificateKEY /etc/apache2/$webCustomSSLCertificateKEY"
+					ln -fs /etc/apache2/$webSSLCertificateKEY /etc/apache2/$webCustomSSLCertificateKEY
 				fi
 			fi
-			if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt ]]; then
-				echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt to /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN-intermediate.crt"
-				ln -fs /$pathforcertif/crt/$CERTIFFORCUSTOMDOMAIN-intermediate.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt
+			if [[ ! -e /etc/apache2/$webCustomSSLCertificateIntermediate ]]; then
+				echo "Create link /etc/apache2/$webCustomSSLCertificateIntermediate to $pathforcertif/crt/$webCustomSSLCertificateIntermediate"
+				ln -fs $pathforcertif/crt/$webCustomSSLCertificateIntermediate /etc/apache2/$webCustomSSLCertificateIntermediate
 				# It is better to link to a bad certificate than linking to non existing file
-				if [[ ! -e /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt ]]; then
-					echo "Create link /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt to /etc/apache2/with.sellyoursaas.com-intermediate.crt"
-					ln -fs /etc/apache2/with.sellyoursaas.com-intermediate.crt /etc/apache2/$CERTIFFORCUSTOMDOMAIN-intermediate.crt
+				if [[ ! -e /etc/apache2/$webCustomSSLCertificateIntermediate ]]; then
+					echo "Previous link not valid, so we recreate it to /etc/apache2/$webSSLCertificateIntermediate"
+					echo "ln -fs /etc/apache2/$webSSLCertificateIntermediate /etc/apache2/$webCustomSSLCertificateIntermediate"
+					ln -fs /etc/apache2/$webSSLCertificateIntermediate /etc/apache2/$webCustomSSLCertificateIntermediate
 				fi
 			fi
 		fi
@@ -332,9 +338,9 @@ if [[ "$mode" == "rename" ]]; then
 		echo "cat $vhostfile | sed -e 's/__webAppDomain__/$customurl/g' | \
 				  sed -e 's/__webAppAliases__/$customurl/g' | \
 				  sed -e 's/__webAppLogName__/$instancename/g' | \
-                  sed -e 's/__webSSLCertificateCRT__/$webSSLCertificateCRT/g' | \
-                  sed -e 's/__webSSLCertificateKEY__/$webSSLCertificateKEY/g' | \
-                  sed -e 's/__webSSLCertificateIntermediate__/$webSSLCertificateIntermediate/g' | \
+                  sed -e 's/__webSSLCertificateCRT__/$webCustomSSLCertificateCRT/g' | \
+                  sed -e 's/__webSSLCertificateKEY__/$webCustomSSLCertificateKEY/g' | \
+                  sed -e 's/__webSSLCertificateIntermediate__/$webCustomSSLCertificateIntermediate/g' | \
 				  sed -e 's/__webAdminEmail__/$EMAILFROM/g' | \
 				  sed -e 's/__osUsername__/$osusername/g' | \
 				  sed -e 's/__osGroupname__/$osusername/g' | \
@@ -349,9 +355,9 @@ if [[ "$mode" == "rename" ]]; then
 		cat $vhostfile | sed -e "s/__webAppDomain__/$customurl/g" | \
 				  sed -e "s/__webAppAliases__/$customurl/g" | \
 				  sed -e "s/__webAppLogName__/$instancename/g" | \
-                  sed -e "s/__webSSLCertificateCRT__/$webSSLCertificateCRT/g" | \
-                  sed -e "s/__webSSLCertificateKEY__/$webSSLCertificateKEY/g" | \
-                  sed -e "s/__webSSLCertificateIntermediate__/$webSSLCertificateIntermediate/g" | \
+                  sed -e "s/__webSSLCertificateCRT__/$webCustomSSLCertificateCRT/g" | \
+                  sed -e "s/__webSSLCertificateKEY__/$webCustomSSLCertificateKEY/g" | \
+                  sed -e "s/__webSSLCertificateIntermediate__/$webCustomSSLCertificateIntermediate/g" | \
 				  sed -e "s/__webAdminEmail__/$EMAILFROM/g" | \
 				  sed -e "s/__osUsername__/$osusername/g" | \
 				  sed -e "s/__osGroupname__/$osusername/g" | \
@@ -550,6 +556,15 @@ if [[ "$mode" == "suspend" || $mode == "suspendmaintenance" ]]; then
 		ln -fs /etc/apache2/sellyoursaas-available/$fqn.custom.conf /etc/apache2/sellyoursaas-online
 	
 	fi
+
+	
+	# remove virtual host for public web sites by deleting links into sellyoursaas-enabled
+	echo "Remove virtual host for possible virtual host for web sites"
+	for fic in `ls /etc/apache2/sellyoursaas-online/$fqn.website-*.conf`
+	do
+		echo Delete conf with rm -f /etc/apache2/sellyoursaas-online/$fqn.website-*.conf
+		rm -f /etc/apache2/sellyoursaas-online/$fqn.website-*.conf
+	done
 	
 	
 	echo /usr/sbin/apache2ctl configtest
@@ -558,7 +573,7 @@ if [[ "$mode" == "suspend" || $mode == "suspendmaintenance" ]]; then
 		echo Error when running apache2ctl configtest. We remove the new created virtual host /etc/apache2/sellyoursaas-online/$fqn.conf to hope to restore configtest ok.
 		rm -f /etc/apache2/sellyoursaas-online/$fqn.conf
 		rm -f /etc/apache2/sellyoursaas-online/$fqn.custom.conf
-		echo "Failed to suspend instance $instancename.$domainname with: Error when running apache2ctl configtest" | mail -aFrom:$EMAILFROM -s "[Alert] Pb when suspending $instancename.$domainname" $EMAILTO 
+		echo "Failed to suspend instance $instancename.$domainname with: Error when running apache2ctl configtest" | mail -aFrom:$EMAILFROM -s "[Warning] Pb when suspending $instancename.$domainname" $EMAILTO 
 		sleep 1
 		exit 5
 	fi 
@@ -568,7 +583,7 @@ if [[ "$mode" == "suspend" || $mode == "suspendmaintenance" ]]; then
 		service apache2 reload
 		if [[ "x$?" != "x0" ]]; then
 			echo Error when running service apache2 reload
-			echo "Failed to suspend instance $instancename.$domainname with: Error when running service apache2 reload" | mail -aFrom:$EMAILFROM -s "[Alert] Pb when suspending $instancename.$domainname" $EMAILTO
+			echo "Failed to suspend instance $instancename.$domainname with: Error when running service apache2 reload" | mail -aFrom:$EMAILFROM -s "[Warning] Pb when suspending $instancename.$domainname" $EMAILTO
 			sleep 1 
 			exit 6
 		fi
@@ -677,9 +692,17 @@ if [[ "$mode" == "unsuspend" ]]; then
 		ln -fs /etc/apache2/sellyoursaas-available/$fqn.custom.conf /etc/apache2/sellyoursaas-online
 	
 	fi
-	
-	
-	
+
+
+	# restore virtual host for public web sites by deleting links into sellyoursaas-enabled
+	echo "Check if we have to enable virtual host for web sites"
+	for fic in `ls /etc/apache2/sellyoursaas-available/$fqn.website-*.conf`
+	do
+		echo Enable conf with ln -fs /etc/apache2/sellyoursaas-available/$fqn.website-*.conf /etc/apache2/sellyoursaas-online
+		ln -fs /etc/apache2/sellyoursaas-available/$fqn.website-*.conf /etc/apache2/sellyoursaas-online
+	done
+
+
 	echo /usr/sbin/apache2ctl configtest
 	/usr/sbin/apache2ctl configtest
 	if [[ "x$?" != "x0" ]]; then

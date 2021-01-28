@@ -85,10 +85,11 @@ Il vous faut acquerrir ce nom de domaine auprès d'un registrar.
 
 La première étape est de mettre à disposition un (ou plusieurs) serveur. Si on part sur plusieurs serveurs, l'un sera serveur *Master* (pilotage et facturation) et les autres seront *Serveurs de déploiement* (les instances des clients). Le serveur *Master* pouvant aussi être *Serveur de déploiement*, il est possible de démarrer avec un seul serveur.
 
-=== Choix de la machine et de l'OS
+=== Choix de la machine et de l'OS et création
 
-* Obtenir un serveur avec un accès SSH pouvant passer root (On utilisera Ubuntu LTS minimal *16.04* ou *18.04*) pour le *Serveur Master*.
-* Obtenir un ou n serveurs avec un accès SSH pouvant passer root (On utilisera Ubuntu LTS minimal 16.04 ou 18.04) pour le ou les *Serveurs de Déploiement*. Remarque: Ce point peut être ignorée si vous décidez que le serveur de Déploiement sera le même serveur que le serveur Master (non recommandé en production).
+* Obtenir un serveur avec un accès SSH pouvant passer root (On utilisera Ubuntu LTS minimal *16.04* ou *18.04* or *20.04*) pour le *Serveur Master*.
+
+* Obtenir un ou n serveurs avec un accès SSH pouvant passer root (On utilisera Ubuntu LTS minimal 16.04 ou 18.04 or 20.04) pour le ou les *Serveurs de Déploiement*. Remarque: Ce point peut être ignorée si vous décidez que le serveur de Déploiement sera le même serveur que le serveur Master (non recommandé en production).
 
 _Exemple avec Amazon Standard Medium:_
 
@@ -99,11 +100,11 @@ _Exemple avec OVH Public Cloud:_
 Pour le serveur master: VPS ou B2-15 ou +
 Pour le ou les serveurs de déploiement, pour 500 instances: B2-15 ou + (soit server 2 core minimum - Mémoire 8 Go minimum - Coût en 2020: 22 euros / mois). Doublez les caractéristiques si vous visez 1 000 instances client par serveur.
 
-
+* Ajouter les entrées DNS entry du ou des serveurs (Entrée A pour IP4 et AAAA pour IP6)
 
 
 [[ajout_de_disque]]
-=== Ajout du ou des disques de données (home des instances utilisateurs et home des sauvegardes)
+=== Ajout du ou des disques durs de données (home des instances utilisateurs et home des sauvegardes)
 
 On va ajouter, sur le *Serveur de déploiement*, un disque indépendant pour les instances utilisateurs et les sauvegardes. Il peut s'agir d'un disque pour les 2 ou bien de 2 disques différents.
 
@@ -138,7 +139,7 @@ Que le disque viennent d'etre formaté ou qu'il s'aggisse d'un disque ajouté d�
 ---------------
 UUID=94817f83-a2ad-46c4-81e0-06e6dd0e95f1 /mnt/diskX ext4 defaults 0 0
 ou
-UUID=94817f83-a2ad-46c4-81e0-06e6dd0e95f1 /mnt/diskX ext4 [noatime,]nofail 0 0 (ne bloque pas le démarrage du serveur)
+UUID=94817f83-a2ad-46c4-81e0-06e6dd0e95f1 /mnt/diskX ext4 noatime,nofail 0 0 (ne bloque pas le démarrage du serveur)
 ---------------
 
 * Monter les disques
@@ -146,8 +147,10 @@ UUID=94817f83-a2ad-46c4-81e0-06e6dd0e95f1 /mnt/diskX ext4 [noatime,]nofail 0 0 (
 [source,bash]
 ---------------
 mkdir /mnt/diskhome
-mkdir /mnt/diskbackup
 mount /dev/vdxY /mnt/diskhome
+
+And if a disk was created for backup:
+mkdir /mnt/diskbackup
 mount /dev/vdxZ /mnt/diskbackup
 
 blkid
@@ -187,7 +190,7 @@ Pour vérifier:
 cat /proc/mounts | grep diskX
 ---------------
 
-Rem: Pour information, si il faut récupérer des données d'un autre disque après avoir créé le disque, utilisez:
+Rem: Pour information, si il faut récupérer les fichiers de données d'un autre disque après avoir créé le disque, utilisez:
 
 [source,bash]
 ---------------
@@ -196,6 +199,7 @@ rsync --info=progress2 -au serveursource:/mnt/diskSource /mnt/diskTarget
 Example:
 rsync --info=progress2 --exclude 'dbn*' -au -e 'ssh' . loginuser@myserverdest.mydomain.com:/var/lib/mysql
 chown -R mysql.mysql /var/lib/mysql
+Après avoir lancé mysql, il est possible de tester les bases par
 mysqlcheck --all-databases
 ---------------
 
@@ -595,7 +599,7 @@ Installer le client NFS et faire le montage en manuel. Le montage est réalisé 
 
 [source,bash]
 ---------------
-sudo apt-get install nfs-common
+sudo apt install nfs-common
 sudo mount -t nfs i.p.server.master:/home/admin/wwwroot/dolibarr_documents/sellyoursaas /home/admin/wwwroot/dolibarr_documents/sellyoursaas
 sudo umount /home/admin/wwwroot/dolibarr_documents/sellyoursaas
 ---------------
@@ -652,12 +656,13 @@ Host github.com
 
 [source,bash]
 ---------------
-sudo apt-get update
-sudo apt-get install ntp git zip memcached rrdtool ncdu
-sudo apt-get install php mysql-server mysql-client php-cli apache2 php-pear apache2-bin libapache2-mod-php php-fpm php-gd php-json php-ldap php-mysqlnd php-curl php-memcached php-rrd php-imagick php-geoip php-mcrypt php-intl php-zip php-bz2 php-ssh2
-sudo apt-get install watchdog cpulimit libapache2-mpm-itk apparmor apparmor-profiles apparmor-utils rkhunter chkrootkit
-sudo apt-get install bind9
-sudo apt-get install spamc spamassassin clamav clamav-daemon
+sudo apt update
+sudo apt install ntp git gzip zip zstd memcached rrdtool ncdu
+sudo apt install php mysql-server mysql-client php-cli apache2 php-pear apache2-bin libapache2-mod-php php-fpm php-gd php-json php-ldap php-mysqlnd php-curl php-memcached php-rrd php-imagick php-geoip php-mcrypt php-intl php-zip php-bz2 php-ssh2 php-mbstring
+sudo apt install watchdog cpulimit libapache2-mpm-itk apparmor apparmor-profiles apparmor-utils rkhunter chkrootkit
+sudo apt install bind9
+sudo apt install spamc spamassassin clamav clamav-daemon
+sudo apt install soffice libreoffice-common libreoffice-writer
 ---------------
 
 
@@ -703,8 +708,7 @@ mkdir sellyoursaas-available sellyoursaas-online sellyoursaas-offline
 ln -fs /etc/apache2/sellyoursaas-online /etc/apache2/sellyoursaas-enabled
 ---------------
 
-* Sur Ubuntu 18.04 et plus, vérifiez que le paramètre *PrivateTmp* est à *false* dans la configuration de lancement Apache. Ceci permettra d'avoir un 
-répertoire */tmp* non unique et isolé à chaque instance rendant possible les opérations de debug et d'analyse sur les problèmes d'envoi demails et de contrôle de Spam.
+* Sur Ubuntu 18.04 et plus, vérifiez que le paramètre *PrivateTmp* est à *false* dans le fichier *apache2.service* de configuration de lancement Apache. Ceci permettra d'avoir un répertoire */tmp* non unique et isolé à chaque instance rendant possible les opérations de debug et d'analyse sur les problèmes d'envoi demails et de contrôle de Spam.
 
 [source,bash]
 ---------------
@@ -897,7 +901,7 @@ TODO Graphic avec les flux et les ports.
 
 [source,bash]
 ---------------
-ln -fs /home/admin/wwwroot/dolibarr_sellyoursaas/scripts/repair.ksh /usr/bin/repair
+ln -fs /home/admin/wwwroot/dolibarr_sellyoursaas/scripts/repair.ksh /usr/sbin/repair
 ---------------
 
 Pour consulter, ne plus lancer au démarrage, lancer au démarrage, arrêter, lancer:
@@ -1552,7 +1556,7 @@ En cas de besoin d'utiliser postfix depuis un accès externe (et donc authentifi
 
 [source,bash]
 ---------------
-sudo apt-get install sasl2-bin
+sudo apt install sasl2-bin
 vi /etc/default/saslauthd  pour mettre START=yes
 ---------------
 
@@ -1662,8 +1666,8 @@ read_buffer_size=1M
 join_buffer_size=2M
 max_heap_table_size=32M
 max_allowed_packet=32M
-# Mysql: max_execution_time = 300000 (milliseconds) or Mariadb: max_statement_time = 300 (seconds)
-#max_execution_time = 300000
+# Mysql: max_execution_time = 120000 (milliseconds) or Mariadb: max_statement_time = 120 (seconds)
+#max_execution_time = 120000
 
 innodb_buffer_pool_size=1G
 innodb_buffer_pool_instances=8
@@ -2496,7 +2500,7 @@ mail.log = /var/log/phpmail.log
 
 [source,bash]
 ---------------
-# use the syslog group by default, since this is the owning group of /var/log/syslog.
+# use the syslog group by default, since this is the owning group of /var/log.
 su root syslog
 ---------------
 
@@ -2526,7 +2530,7 @@ su root syslog
 [source,conf]
 ---------------
 /var/log/phpsendmail.log /var/log/phpmail.log {
-        su syslog adm        
+        su root root        
         weekly
         rotate 4
         compress
@@ -2548,7 +2552,7 @@ su root syslog
 }
 
 /home/admin/wwwroot/dolibarr_documents/*.log {
-        su root root
+        su admin www-data
         daily
         rotate 7
         compress
@@ -2616,10 +2620,10 @@ Note: Les rapports sont dans */var/crash*
 
 [source,bash]
 ---------------
-apt-get install software-properties-common python-software-properties
+apt install software-properties-common python-software-properties
 add-apt-repository ppa:certbot/certbot
-apt-get update
-apt-get install python-certbot-apache
+apt update
+apt install python-certbot-apache
 ---------------
 
 [[creation_certificat_ssl]]
@@ -3433,13 +3437,14 @@ apt remove php-fpm php7-fpm
 ---------------
 
 
-
-=== Suivi espace utilisé en base
+[[check_database_used]]
+=== Suivi espace utilisé en base mysql / mariadb
 
 La requête suivante permet d'avoir une vision de l'espace réél (sans le gachis) en base de données.
 
 [source,sql]
 ---------------
+show variables like 'innodb_stats_on_metadata';
 SET GLOBAL innodb_stats_on_metadata=0;
 SELECT table_schema "DB Name", ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) "DB Size in MB",
 SUM(data_length) "Data", SUM(index_length) "Index"  FROM information_schema.tables 
@@ -3451,6 +3456,7 @@ Et par table
 
 [source,sql]
 ---------------
+show variables like 'innodb_stats_on_metadata';
 SET GLOBAL innodb_stats_on_metadata=0;
 SELECT table_schema "DB Name", table_name, ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) "DB Size in MB",
 SUM(data_length) "Data", SUM(index_length) "Index"  FROM information_schema.tables 
@@ -3522,7 +3528,7 @@ Voir la documentation *afick.pl* pour plus d'options.
 
 [source,bash]
 ---------------
-apt-get install python3-openstackclient python3-novaclient -y
+apt install python3-openstackclient python3-novaclient -y
 ---------------
 
 - Récupérer le fichier OpenStack RC File v3
@@ -3638,7 +3644,7 @@ Find the line in the [mysqld] block that begins with datadir=, which is separate
 
 [source,bash]
 ---------------
-/etc/my.cnf
+vi /etc/my.cnf
 [mysqld]
 datadir=/mnt/volume-nyc1-01/mysql
 socket=/mnt/volume-nyc1-01/mysql/mysql.sock
@@ -3648,7 +3654,7 @@ After updating the existing lines, we’ll need to add configuration for the mys
 
 [source,bash]
 ---------------
-/etc/my.cnf
+vi /etc/my.cnf
 [client]
 port=3306
 socket=/mnt/volume-nyc1-01/mysql/mysql.sock
@@ -3701,7 +3707,7 @@ aa-enforce usr.sbin.mysqld
 
 
 
-[[Lancement de mysql sans permissions]]
+[[special_start_mysql_mariadb]]
 === Lancement spéciaux de mysql ou mariadb
 
 * Sans permissions :
@@ -4091,7 +4097,7 @@ image::Example_screen_datadog.png[Example ecran supervision DataDog]
 
 === Options cachées
 
-You can force different values for some setup parameters when the customer has registered itself from a page with *mydomain.com* as main domain.
+You can force different values for some setup parameters to overwrite the default value when the customer has registered itself from a page with *mydomain.com* as main domain.
 
 * SELLYOURSAAS_NAME_FORDOMAIN-myseconddomain.com = My Service name bis 
 * SELLYOURSAAS_ACCOUNT_URL-myseconddomain.com = https://myaccount.myseconddomain.com
@@ -4139,7 +4145,13 @@ Erreur lors de l'envoi d'email dans */var/log/mail.log*:
 
 	Mar  2 22:41:59 novafirstcloud6 postfix/error[12146]: 7E69E17DC50: to=<admin@novafirstcloud5.localdomain>, orig_to=<admin>, relay=none, delay=164458, delays=164458/0.06/0/0, dsn=4.4.3, status=deferred (delivery temporarily suspended: Host or domain name not found. Name service error for name=smtp.seendgrid.net type=A: Host not found, try again)
 
-=> Check you have a file */etc/resolv.conf* and that it point to 127.0.0.1 (if not, create it and restart postfix)
+=> Check you have a file */etc/resolv.conf* that is link to ../run/resolvconf/resolv.conf and that in content, it has an entry that point to local bind server so:
+
+nameserver 127.0.0.1
+or 
+nameserver 127.0.0.53
+
+If not, create it and restart postfix.
 
 
 ==== php sessions files in /var/lib/php/sessions are not purged
@@ -4159,4 +4171,30 @@ We found into log file /var/log/fail2ban.log
 	2020-09-19 00:57:16,902 fail2ban.actions        [1182]: ERROR   Failed to execute ban jail 'postfix-sasl' action 'iptables-multiport' info 'ActionInfo
 	
 Edit the file /etc/fail2ban/jail/conf to replace *imap3* (it does not exists) into *imap* for rule postfix-sasl
+
+
+==== Extracting a zip file extract files into filename with path with \ including into name
+
+The problem is into the zip file (may be generated by the bugged Powershell). To solve this, try to unzip from command line with 
+
+	unzip  file.zip
+
+If it fails, you can fix path with this command
+
+	for file in *\\*; do target="${file//\\//}"; mkdir -p "${target%/*}"; mv -v "$file" "$target"; done
+
+
+==== Error mysqldump: Error 3024: Query execution was interrupted, maximum statement execution time exceeded when dumping table `....` at row: ...
+
+The value for *max_execution_time* is too low or there is a table that has an abnormal number of records.
+- Check parameter max_execution_time into */etc/mysql/mysql.conf.d/mysqld.cnf* or similar files.
+- Try to run the mysqldump after increasing the max_execution_time dynamically from mysql with:
+    SHOW VARIABLES LIKE 'MAX_EXECUTION_TIME'
+    SET GLOBAL MAX_EXECUTION_TIME=120000;
+- See chapter <<check_database_used>> to analyze size of database. A table may be abnormaly large.
+
+
+==== Error 77 when using the option MAIN_ODT_AS_PDF to build PDF from ODT automatically
+
+- Check the temp directory is writable by the web server user.
 
