@@ -117,11 +117,11 @@ if (empty($user->id)) {
 }
 
 $action = GETPOST('action', 'alpha');
-$orgname = ucfirst(trim(GETPOST('orgName', 'alpha')));
-$email = trim(GETPOST('username', 'alpha'));
+$orgname = dol_trunc(ucfirst(trim(GETPOST('orgName', 'alpha'))), 250, 'right', 'UTF-8', 1);
+$email = dol_trunc(trim(GETPOST('username', 'alpha')), 255, 'right', 'UTF-8', 1);
 $domainemail = preg_replace('/^.*@/', '', $email);
-$password = trim(GETPOST('password', 'alpha'));
-$password2 = trim(GETPOST('password2', 'alpha'));
+$password = dol_trunc(trim(GETPOST('password', 'alpha')), 128, 'right', 'UTF-8', 1);
+$password2 = dol_trunc(trim(GETPOST('password2', 'alpha')), 128, 'right', 'UTF-8', 1);
 $country_code = trim(GETPOST('address_country', 'alpha'));
 $sldAndSubdomain = trim(GETPOST('sldAndSubdomain', 'alpha'));
 $tldid = trim(GETPOST('tldid', 'alpha'));
@@ -720,7 +720,6 @@ if ($reusecontractid) {
 	$tmpthirdparty->email = $email;
 	$tmpthirdparty->client = 2;
 	$tmpthirdparty->tva_assuj = 1;
-	$tmpthirdparty->default_lang = $langs->defaultlang;
 	$tmpthirdparty->array_options['options_dolicloud'] = 'yesv2';
 	$tmpthirdparty->array_options['options_date_registration'] = dol_now();
 	$tmpthirdparty->array_options['options_domain_registration_page'] = getDomainFromURL($_SERVER["SERVER_NAME"], 1);
@@ -735,6 +734,11 @@ if ($reusecontractid) {
 
 	if ($country_code) {
 		$tmpthirdparty->country_id = getCountry($country_code, 3, $db);
+		$tmpthirdparty->default_lang = getLanguageCodeFromCountryCode($country_code);	// $langs->defaultlang;
+		$tmparray = explode('_', $tmpthirdparty->default_lang);
+		/*if (! in_array($tmparray[0], array('fr', 'es', 'en'))) {
+			$tmpthirdparty->default_lang = 'en_US';
+		}*/
 	}
 
 

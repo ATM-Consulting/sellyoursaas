@@ -110,6 +110,11 @@ $head[$h][1] = $langs->trans("Home");
 $head[$h][2] = 'home';
 $h++;
 
+$head[$h][0] = 'deployment_servers.php';
+$head[$h][1] = $langs->trans("DeploymentServers");
+$head[$h][2] = 'deploymentservers';
+$h++;
+
 $head[$h][0] = DOL_URL_ROOT.'/core/customreports.php?objecttype=contract&tabfamily=sellyoursaas';
 $head[$h][1] = $langs->trans("CustomReports");
 $head[$h][2] = 'customreports';
@@ -200,7 +205,7 @@ if ($resql) {
 } else dol_print_error($db);
 
 print "\n";
-print "<!-- section of deployment servers -->\n";
+/*print "<!-- section of deployment servers -->\n";
 print '<div class="div-table-responsive-no-min">'; // You can use div-table-responsive-no-min if you dont need reserved height for your table
 print '<table class="noborder nohover centpercent">';
 print '<tr class="liste_titre">';
@@ -261,10 +266,10 @@ print '<a class="button" href="'.$_SERVER["PHP_SELF"].'?action=makeoffline">'.$l
 print ' &nbsp; - &nbsp; ';
 print '<a class="button" href="'.$_SERVER["PHP_SELF"].'?action=makeonline">'.$langs->trans("PutAllInstancesOnLine").'</a>';
 print '</td></tr>';
-*/
+
 print "</table>";
 print '</div>';
-print "<br>";
+print "<br>";*/
 
 
 print '</div><div class="fichetwothirdright"><div class="ficheaddleft">';
@@ -277,9 +282,10 @@ $totalinstancespaying=0;
 $totalcommissions=0;
 $totalresellers=0;
 $serverprice = empty($conf->global->SELLYOURSAAS_INFRA_COST)?'0':$conf->global->SELLYOURSAAS_INFRA_COST;
+$suppliercateg = empty($conf->global->SELLYOURSAAS_DEFAULT_RESELLER_CATEG) ? '0' : $conf->global->SELLYOURSAAS_DEFAULT_RESELLER_CATEG;
 
 $sql = 'SELECT COUNT(*) as nb FROM '.MAIN_DB_PREFIX.'societe as s, '.MAIN_DB_PREFIX.'categorie_fournisseur as c';
-$sql.= ' WHERE c.fk_soc = s.rowid AND s.status = 1 AND c.fk_categorie = '.$conf->global->SELLYOURSAAS_DEFAULT_RESELLER_CATEG;
+$sql.= ' WHERE c.fk_soc = s.rowid AND s.status = 1 AND c.fk_categorie = '.((int) $suppliercateg);
 $resql = $db->query($sql);
 if ($resql) {
 	$obj = $db->fetch_object($resql);

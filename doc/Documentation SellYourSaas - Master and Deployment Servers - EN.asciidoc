@@ -761,9 +761,8 @@ exportfs
 
 ==== On the Deployment Servers
 
-Remember to open the firewall access between the NFS client (*Deployment server*) and the NFS server (*Master server*).
-
-TODO ...
+Be sure to have firewall open between the NFS client (*Deployment server*) and the NFS server (*Master server*). 
+Note: The firewall will be installed later.
 
 Install the NFS client and install it manually. Editing is performed by default in NFSv4.
 
@@ -1062,6 +1061,9 @@ You can create another virtual host for the HTTPS on port 443
 	    ExpiresByType text/javascript A2592000
 	    ExpiresByType application/x-javascript A2592000
 	    ExpiresByType application/javascript A2592000
+
+#RewriteEngine On
+#RewriteRule !^/maintenance.php https://%{SERVER_NAME}/maintenance.php?instance=myaccount [R,L]
 
 RewriteEngine on
 RewriteCond %{SERVER_NAME} =myaccount.mysaasdomainname.com
@@ -2046,7 +2048,7 @@ Note: To delete active plugins, empty the mysql *plugin* table. See "Starting my
 [[creer_un_compte_db_sellyoursaas]]
 ==== Create a user sellyoursaas to control databases of user instances
 
-On the *Master* server and each *Deployment server*, donner l'accès localement au compte *sellyoursaas*:
+On the *Master* server and each *Deployment server*, grant access localy to the login *sellyoursaas*:
 
 [source,sql]
 ---------------
@@ -2059,7 +2061,7 @@ GRANT CREATE, CREATE TEMPORARY TABLES, CREATE VIEW, DROP, DELETE, INSERT, SELECT
 FLUSH PRIVILEGES;
 ---------------
 
-Give permission, on the *Master server*, to the account of each deployment server, on the database *dolibarr*:
+Give permission, on the *Master server*, to the account *sellyoursaas* of each deployment server, on the database *dolibarr*:
 
 [source,sql]
 ---------------
@@ -3012,10 +3014,20 @@ sudo ln -s /snap/bin/certbot /usr/bin/certbot
 #apt install python-certbot-apache
 ---------------
 
+And to list certbot cron job:
+
+[source,bash]
+---------------
+systemctl list-timers
+systemctl status snap.certbot.renew.timer
+---------------
+
+
 [[creation_certificat_ssl]]
 === Create a wildcard SSL certificate for user instances
 
 Into the following instructions, we will use X with value '', 2, 3, ... (numero of pool of instance = numero of the deployment server).
+This must be done on deployment servers only.
 
 ==== Obtain wildcard certificate files for *.withX.mysaasdomainname.com
 
@@ -3071,17 +3083,31 @@ openssl x509 -in fullchain.pem -text
 ---------------
 
 
+* To renew a certificate, run
+
+[source,bash]
+---------------
+certbot renew --manual
+ou
+certbot renew --manual --force-renewal
+---------------
+
+TODO Make renewal working with --preferred-challenges=dns and wildcard.
+
+
 ==== Install certificates files
 
 * Get the SSL certificate files (file *.crt* of the certificate and the intermediate certificate) and install them into */etc/apache2*)
 
-* Créer un lien symbolique vers ces certificats avec le nom generique *withX.sellyoursaas.com.crt* et *withX.sellyoursaas.com-intermediate.crt*:
+* Créer un lien symbolique vers ces certificats avec le nom générique *withX.sellyoursaas.com.crt* et *withX.sellyoursaas.com-intermediate.crt*:
 
 ---------------
 cd /etc/apache2
 ln -fs /pathtomycertificate/withX.mysaasdomainname.com.crt with.sellyoursaas.com.crt
 ln -fs /pathtomycertificate/withX.mysaasdomainname.com-intermediate.crt with.sellyoursaas.com-intermediate.crt
 ---------------
+
+NOTE: This is the certificate that will be used for the client instances. Custom certificates for instances will be in */home/admin/wwwroot/dolibarr_documents/sellyoursaas/crt*
 
 * Edit the default apache file */etc/apache2/sites-available/000-default-ssl.conf* ou */etc/apache2/sites-available/default-ssl.conf* with this content:
 
@@ -3165,7 +3191,6 @@ You must have inside the cron of user *root*
 #40 4 4 * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/clean.sh confirm
 ---------------
 
-Note: certbot-auto may be certbot
 
 You must have inside the cron of user *admin*:
 
@@ -3176,9 +3201,7 @@ You must have inside the cron of user *admin*:
 */10 * * * * /home/admin/wwwroot/dolibarr/scripts/cron/cron_run_jobs.php securitykeydefinedinscheduledjobsetup firstadmin >> /home/admin/wwwroot/dolibarr_documents/cron_run_jobs.php.log
 5 5 * * 0 /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/batch_customers.php updatestatsonly >> /home/admin/logs/batch_customers-updatedatabase.log 2>&1
 7 7 * * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/git_update_sources.sh /home/admin/wwwroot/dolibarr_documents/sellyoursaas/git >> /home/admin/logs/git_update_sources.log 2>&1
-# cron master and deployment root
 #7 7 * * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/git_update_sellyoursaas.sh /home/admin/wwwroot >> /home/admin/logs/git_update_sellyoursaas.log 2>&1
-20 0 * * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/batch_customers.php backup >> /home/admin/logs/batch_customers-backup.log 2>&1
 ---------------
 
 #7 7 * * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/git_update_sellyoursaas.sh /home/admin/wwwroot >> /home/admin/logs/git_update_sellyoursaas.log 2>&1
@@ -4722,4 +4745,13 @@ KexAlgorithms +diffie-hellman-group1-sha1
 Ciphers +aes128-cbc
 
 Then reload ssh with /etc/init.d/ssh reload
+
+
+==== Some remoteaction generates a PHP coredump
+
+This occurs on some distributions due to a bug in PHP method ssh2_disconnect().
+You can disable the call to *ssh2_disconnect()* by setting constant SELLYOURSAAS_SSH2_DISCONNECT_DISABLED to 1
+
+
+
 

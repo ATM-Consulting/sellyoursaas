@@ -53,13 +53,15 @@ if (! $res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i+1)))."/master.in
 // Try master.inc.php using relative path
 if (! $res && file_exists("../master.inc.php")) $res=@include "../master.inc.php";
 if (! $res && file_exists("../../master.inc.php")) $res=@include "../../master.inc.php";
-if (! $res && file_exists("../../../master.inc.php")) $res=@include "../../../master.inc.php";
+if (! $res && file_exists("../../../master.inc.php")) $res=@include "../../master.inc.php";
 if (! $res && file_exists("../../../../master.inc.php")) $res=@include "../../../../master.inc.php";
 if (! $res && file_exists(__DIR__."/../../master.inc.php")) $res=@include __DIR__."/../../master.inc.php";
 if (! $res && file_exists(__DIR__."/../../../master.inc.php")) $res=@include __DIR__."/../../../master.inc.php";
 if (! $res) die("Include of master fails");
 // After this $db, $mysoc, $langs, $conf and $hookmanager are defined (Opened $db handler to database will be closed at end of file).
 // $user is created but empty.
+
+include_once dol_buildpath("/sellyoursaas/class/sellyoursaasutils.class.php");
 
 
 /*
@@ -68,12 +70,17 @@ if (! $res) die("Include of master fails");
 
 print "***** ".$script_file." *****\n";
 
-$passwordtotest = 'aaa';
-$passwordcrypted = 'hash';
+$utils = new SellYourSaasUtils($db);
 
-print dol_hash($passwordtotest)."\n";
-print dol_verifyHash($passwordtotest, $passwordcrypted)."\n";
+$contractline = new ContratLigne($db);
+$result = $contractline->fetch(99704);
 
+if ($result > 0) {
+	$result = $utils->sellyoursaasRemoteAction('refresh', $contractline);
+	print "result = ".$result."\n";
+} else {
+	print "Contract line not found\n";
+}
 
+exit($result);
 
-exit($return_var + $return_varmysql);

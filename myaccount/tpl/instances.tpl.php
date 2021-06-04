@@ -887,6 +887,7 @@ if (count($listofcontractid) == 0) {				// Should not happen
 	$MAXINSTANCES = ((empty($mythirdpartyaccount->array_options['options_maxnbofinstances']) && $mythirdpartyaccount->array_options['options_maxnbofinstances'] != '0') ? (empty($conf->global->SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT) ? 4 : $conf->global->SELLYOURSAAS_MAX_INSTANCE_PER_ACCOUNT) : $mythirdpartyaccount->array_options['options_maxnbofinstances']);
 if ($MAXINSTANCES && count($listofcontractid) < $MAXINSTANCES) {
 	if (! empty($conf->global->SELLYOURSAAS_DISABLE_NEW_INSTANCES)) {
+		print '<!-- RegistrationSuspendedForTheMomentPleaseTryLater -->'."\n";
 		print '<div class="alert alert-warning" style="margin-bottom: 0px">';
 		print $langs->trans("RegistrationSuspendedForTheMomentPleaseTryLater");
 		print '</div>';
@@ -904,12 +905,12 @@ if ($MAXINSTANCES && count($listofcontractid) < $MAXINSTANCES) {
 
         			<div class="horizontal-fld clearboth margintoponly">
         			<div class="control-group required">
-        			<label class="control-label" for="password" trans="1">'.$langs->trans("Password").'</label><input name="password" type="password" required />
+        			<label class="control-label" for="password" trans="1">'.$langs->trans("Password").'</label><input name="password" type="password" maxlength="128" required />
         			</div>
         			</div>
         			<div class="horizontal-fld margintoponly">
         			<div class="control-group required">
-        			<label class="control-label" for="password2" trans="1">'.$langs->trans("ConfirmPassword").'</label><input name="password2" type="password" required />
+        			<label class="control-label" for="password2" trans="1">'.$langs->trans("ConfirmPassword").'</label><input name="password2" type="password" maxlength="128" required />
         			</div>
         			</div>
         			</div> <!-- end group -->

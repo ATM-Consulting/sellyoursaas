@@ -1,0 +1,5 @@
+# Dolibarr language file - Source file is en_US - sellyoursaas
+Authorized_keyInstalled=Arquivo authorized_keys_support instalado
+DeploymentDate=Data de implantação
+PleaseReadFAQFirst=Antes de enviar qualquer tíquete de suporte, verifique se a resposta ainda não está disponível aqui: <br> <br> <center> <a href="%s" target="_faq"> FAQs (perguntas sobre o Foire Aux) </a> </center>
+RecreateAuthorizedKey=Criar arquivo allowed_keys

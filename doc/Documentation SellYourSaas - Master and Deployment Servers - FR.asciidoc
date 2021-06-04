@@ -1002,6 +1002,9 @@ Vous pouvez créer un autre virtual host pour le HTTPS port 443
 	    ExpiresByType application/x-javascript A2592000
 	    ExpiresByType application/javascript A2592000
 
+#RewriteEngine On
+#RewriteRule !^/maintenance.php https://%{SERVER_NAME}/maintenance.php?instance=myaccount [R,L]
+
 RewriteEngine on
 RewriteCond %{SERVER_NAME} =myaccount.mysaasdomainname.com
 RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
@@ -2961,6 +2964,15 @@ sudo ln -s /snap/bin/certbot /usr/bin/certbot
 #apt install certbot
 ---------------
 
+And to list certbot cron job:
+
+[source,bash]
+---------------
+systemctl list-timers
+systemctl status snap.certbot.renew.timer
+---------------
+
+
 [[creation_certificat_ssl]]
 === Création d'un certificat SSL wildcard pour les instances utilisateurs
 
@@ -3031,6 +3043,8 @@ cd /etc/apache2
 ln -fs /pathtomycertificate/withX.mysaasdomainname.com.crt with.sellyoursaas.com.crt
 ln -fs /pathtomycertificate/withX.mysaasdomainname.com-intermediate.crt with.sellyoursaas.com-intermediate.crt
 ---------------
+
+NOTE: Il s'agit ici du certificat qui sera utilisé pour les instances clients. Les certificats custom des instances seront dans */home/admin/wwwroot/dolibarr_documents/sellyoursaas/crt*
 
 * Edite le fichier apache du virtual host par défaut */etc/apache2/sites-available/000-default-ssl.conf* ou */etc/apache2/sites-available/default-ssl.conf* avec ce contenu:
 
@@ -3115,7 +3129,6 @@ Avoir dans le cron du user *root*
 #40 4 4 * * /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas/scripts/clean.sh confirm
 ---------------
 
-Note: certbot-auto may be certbot
 
 Mettre dans le cron du user *admin*:
 
@@ -4645,4 +4658,11 @@ KexAlgorithms +diffie-hellman-group1-sha1
 Ciphers +aes128-cbc
 
 Then reload ssh with /etc/init.d/ssh reload
+
+
+==== Some remoteaction generates a PHP coredump
+
+This occurs on some distributions due to a bug in PHP method ssh2_disconnect().
+You can disable the call to *ssh2_disconnect()* by setting constant SELLYOURSAAS_SSH2_DISCONNECT_DISABLED to 1
+
 
